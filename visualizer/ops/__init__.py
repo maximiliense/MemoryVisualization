@@ -17,6 +17,7 @@ from .instructions import (
     StaticArray,
     VecNew,
     VecPush,
+    VecPushDeref,
     calc_frame_size,
 )
 
@@ -39,6 +40,7 @@ __all__ = [
     "VecPush",
     "ReturnIfEquals",
     "calc_frame_size",
+    "VecPushDeref",
 ]
 
 

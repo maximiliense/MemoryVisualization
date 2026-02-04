@@ -27,6 +27,7 @@ from visualizer.ops import (
     VecNew,
     VecPush,
 )
+from visualizer.ops.instructions import VecPushDeref
 from visualizer.program import FunctionDef, Program
 from visualizer.runner import InteractiveRunner
 
@@ -357,6 +358,57 @@ def p16():
     )
 
 
+def p17():
+    return Program(
+        {
+            "main": FunctionDef(
+                body=[
+                    Nop("Setup parameters"),
+                    StackVar("x", "i32", 10),
+                    VecNew("v", [1, 2], cap=2),
+                    CallFunction("process", ["x", "v"]),
+                    ReturnFunction(),
+                ]
+            ),
+            "process": FunctionDef(
+                size=4,
+                params=["val", "ptr"],
+                body=[
+                    Nop("val is a copy, ptr is a copy of vec"),
+                    VecPush("ptr", 42),
+                    ReturnFunction(),
+                ],
+            ),
+        }
+    )
+
+
+def p18():
+    return Program(
+        {
+            "main": FunctionDef(
+                body=[
+                    Nop("Setup parameters"),
+                    StackVar("x", "i32", 10),
+                    VecNew("v", [1, 2], cap=2),
+                    Ref("ptr", "v"),
+                    CallFunction("process", ["x", "ptr"]),
+                    ReturnFunction(),
+                ]
+            ),
+            "process": FunctionDef(
+                size=2,
+                params=["val", "ptr"],
+                body=[
+                    Nop("val is a copy, ptr points to main frame"),
+                    VecPushDeref("ptr", 42),
+                    ReturnFunction(),
+                ],
+            ),
+        }
+    )
+
+
 if __name__ == "__main__":
     # Theme Colors
     CYAN = "\033[96m"
@@ -385,6 +437,8 @@ if __name__ == "__main__":
         "14": p14,
         "15": p15,
         "16": p16,
+        "17": p17,
+        "18": p18,
     }
 
     # Header
@@ -417,9 +471,13 @@ if __name__ == "__main__":
             f"{RED}13{RESET}: Stack Overflow",
             f"{GREEN}14{RESET}: Return Values",
         ),
-        (f"{YELLOW}15{RESET}: Memory Leak", f"{GREEN}16{RESET}: Memory Clean", ""),
+        (
+            f"{YELLOW}15{RESET}: Memory Leak",
+            f"{GREEN}16{RESET}: Memory Clean",
+            f"{CYAN}17{RESET}: Vec in param",
+        ),
+        (f"{CYAN}18{RESET}: &Vec in param", "", ""),
     ]
-
     for row in menu:
         print(f"  {row[0]:<25} {row[1]:<25} {row[2]}")
 

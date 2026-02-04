@@ -71,7 +71,17 @@ class Ref(Instruction):
         self.description = f"let {label} = &{target_label};"
 
     def execute(self, mem, prog):
-        t_addr = mem.get_addr(self.target_label)
+        try:
+            t_addr = mem.get_addr(self.target_label)
+        except (ValueError, KeyError):
+            try:
+                t_addr = mem.get_addr(f"{self.target_label}.cap")
+            except (ValueError, KeyError):
+                raise ValueError(
+                    f"Reference failed: '{self.target_label}' not found on stack."
+                )
+
+        # 3. Create the reference pointing to that address
         mem.alloc_stack_var(
             self.label, f"&{self.target_label}", t_addr, is_pointer=True
         )
@@ -158,19 +168,58 @@ class CallFunction(Instruction):
         self.description = display or f"{target}({', '.join(self.args)});"
 
     def execute(self, mem, prog):
-        arg_data = [
-            (
-                mem.mem[mem.get_addr(l)].value,
-                mem.mem[mem.get_addr(l)].typ,
-                mem.mem[mem.get_addr(l)].is_pointer,
-            )
-            for l in self.args  # noqa: E741
-        ]
+        arg_data = []
+        for label in self.args:
+            try:
+                # 1. Try to fetch standard variable metadata
+                addr = mem.get_addr(label)
+                cell = mem.mem[addr]
+                arg_data.append(
+                    {
+                        "kind": "scalar",
+                        "val": cell.value,
+                        "typ": cell.typ,
+                        "is_ptr": cell.is_pointer,
+                    }
+                )
+            except (ValueError, KeyError):
+                # 2. Fallback: Check if it's a Vector (check for .ptr suffix)
+                try:
+                    p_addr = mem.get_addr(f"{label}.ptr")
+                    l_addr = mem.get_addr(f"{label}.len")
+                    c_addr = mem.get_addr(f"{label}.cap")
+
+                    arg_data.append(
+                        {
+                            "kind": "vec",
+                            "ptr": mem.mem[p_addr].value,
+                            "len": mem.mem[l_addr].value,
+                            "cap": mem.mem[c_addr].value,
+                        }
+                    )
+                except (ValueError, KeyError):
+                    raise ValueError(
+                        f"Function call failed: Argument '{label}' not found on stack."
+                    )
+
         func = prog.functions[self.target]
-        size = calc_frame_size(func)  # Use the unified helper
+        size = calc_frame_size(func)
         mem.push_frame(self.target, size)
-        for name, (val, typ, is_ptr) in zip(func.params, arg_data):
-            mem.alloc_stack_var(name, typ, val, is_pointer=is_ptr)
+
+        # 3. Allocation in the NEW frame
+        for param_name, data in zip(func.params, arg_data):
+            if data["kind"] == "scalar":
+                mem.alloc_stack_var(
+                    param_name, data["typ"], data["val"], is_pointer=data["is_ptr"]
+                )
+            elif data["kind"] == "vec":
+                # Reconstruct the Vec metadata in the new frame
+                # This mimics Rust's move/copy of the Vec struct (ptr, len, cap)
+                mem.alloc_stack_var(
+                    f"{param_name}.ptr", "usize", data["ptr"], is_pointer=True
+                )
+                mem.alloc_stack_var(f"{param_name}.len", "usize", data["len"])
+                mem.alloc_stack_var(f"{param_name}.cap", "usize", data["cap"])
 
 
 class ReturnIfEquals(Instruction):
@@ -330,8 +379,65 @@ class VecPush(Instruction):
         mem.mem[l_addr].value = length + 1
 
 
+class VecPushDeref(Instruction):
+    def __init__(self, ptr_name, val):
+        self.ptr_name, self.val = ptr_name, val
+        self.description = f"(*{ptr_name}).push({val});"
+
+    def execute(self, mem, prog):
+        # 1. Get the address stored in the pointer
+        pa = mem.get_addr(self.ptr_name)
+        base_addr = mem.mem[pa].value  # This points to 'v.cap' in the caller's frame
+
+        if not isinstance(base_addr, int):
+            raise ValueError(
+                f"VecPushDeref failed: {self.ptr_name} is not a valid pointer."
+            )
+
+        # 2. Map metadata addresses based on your contiguous stack layout:
+        # ptr is at base, len is +1, cap is +2
+        p_addr = base_addr + 2
+        l_addr = base_addr + 1
+        c_addr = base_addr
+
+        # 3. Extract values from those addresses
+        ptr = mem.mem[p_addr].value
+        length = mem.mem[l_addr].value
+        cap = mem.mem[c_addr].value
+
+        if not (
+            isinstance(ptr, int) and isinstance(length, int) and isinstance(cap, int)
+        ):
+            raise ValueError(
+                f"VecPushDeref failed: metadata at {base_addr} is corrupted."
+            )
+
+        # 4. Reallocation logic (Same as VecPush)
+        if length >= cap:
+            new_cap = cap * 2
+            new_ptr = mem._hp
+
+            for i in range(length):
+                old_cell_idx = ptr + i
+                old_val = mem.mem[old_cell_idx].value
+                mem.mem[old_cell_idx].freed = True
+                mem.mem[old_cell_idx].value = "FREED"
+                mem.alloc_heap(f"deref_vec[{i}]", "i32", old_val)
+
+            for i in range(length, new_cap):
+                mem.alloc_heap(f"deref_vec[{i}]", "i32", None)
+
+            mem.mem[p_addr].value = new_ptr
+            mem.mem[c_addr].value = new_cap
+            ptr = new_ptr
+
+        # 5. Final insertion
+        mem.mem[ptr + length].value = self.val
+        mem.mem[l_addr].value = length + 1
+
+
 def calc_frame_size(func):
-    size = len(func.params)
+    size = func.size
     for i in func.body:
         if isinstance(i, (StackVar, HeapAlloc, Ref, Clone)):
             size += 1

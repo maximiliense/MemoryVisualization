@@ -13,7 +13,12 @@ class PC:
 @dataclass
 class FunctionDef:
     params: list[str] = field(default_factory=list)
-    body: list[Instruction] = field(default_factory=list)
+    body: list["Instruction"] = field(default_factory=list)
+    size: int = 0
+
+    def __post_init__(self):
+        if self.size == 0:
+            self.size = len(self.params)
 
 
 @dataclass
