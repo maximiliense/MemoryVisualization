@@ -16,6 +16,8 @@ Once an illustration is selected, the visualizer opens a window showing the live
 
 *The simulation highlights the current line of code, the active stack frames, and dynamic pointers between memory locations.*
 
+![](figs/mix.png)
+
 ## 🚀 Getting Started
 
 This project uses [uv](https://github.com/astral-sh/uv) for fast, reliable Python package and dependency management.
