@@ -6,7 +6,6 @@ A lightweight, interactive Python tool designed to help students visualize **Sta
 
 ## 🖥️ User Interface & Simulation
 
-
 When you launch the program, you are greeted with a categorized menu of memory illustrations:
 ![](figs/menu.png)
 
@@ -17,34 +16,44 @@ Once an illustration is selected, the visualizer opens a window showing the live
 
 *The simulation highlights the current line of code, the active stack frames, and dynamic pointers between memory locations.*
 
-
 ## 🚀 Getting Started
+
+This project uses [uv](https://github.com/astral-sh/uv) for fast, reliable Python package and dependency management.
 
 ### Prerequisites
 
-* Python 3.9+
-* `matplotlib`
+* [uv](https://docs.astral.sh/uv/getting-started/installation/) installed on your system.
+* Python 3.12+ (managed automatically by `uv`).
 
-### Installation
+### Installation & Setup
 
-1. Clone the repository.
-2. Install the package in editable mode to allow for local imports:
-
+1. **Clone the repository**:
 ```bash
-pip install -e .
+git clone git@github.com:maximiliense/MemoryVisualization.git
+cd MemoryVisualization
 
 ```
 
-### Running
 
-To launch the interactive menu:
-
+2. **Sync dependencies**:
+This command creates a virtual environment and installs all necessary dependencies (`matplotlib`) automatically:
 ```bash
-python visualizer.py
+uv sync
 
 ```
 
----
+
+
+### Running the Visualizer
+
+To launch the interactive menu, use `uv run`. This ensures the script runs within the correct environment with all dependencies available:
+
+```bash
+uv run python main.py
+
+```
+
+
 
 ## 📝 Writing Your Own Programs
 
