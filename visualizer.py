@@ -317,6 +317,12 @@ def p15():
                     CallFunction(
                         "heap_alloc",
                     ),
+                    CallFunction(
+                        "heap_alloc",
+                    ),
+                    CallFunction(
+                        "heap_alloc",
+                    ),
                     StackVar("a", "i32", 99),
                     ReturnFunction(),
                 ]
