@@ -1,3 +1,6 @@
+import re
+
+import matplotlib.colors as mcolors
 import matplotlib.patches as mpatches
 from matplotlib.patches import FancyArrowPatch
 
@@ -20,6 +23,15 @@ from visualizer.architecture import (
     MemoryModel,
 )
 from visualizer.program import PC, Program
+
+
+def group_name(label: str) -> str:
+    return re.split(r"[.\[]", label, maxsplit=1)[0]
+
+
+def modulate_luminance(color, factor):
+    r, g, b = mcolors.to_rgb(color)
+    return (min(r * factor, 1.0), min(g * factor, 1.0), min(b * factor, 1.0))
 
 
 def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
@@ -124,6 +136,12 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
         ha="right",
     )
 
+    group_lut = {}
+    next_group_idx = 0
+
+    GROUP_BG_BASE = (1, 1, 1, 0.28)  # soft light plate
+    GROUP_BG_ALT = (1, 1, 1, 0.44)  # alternating luminance
+
     for a in range(MEM_SIZE):
         cy = addr_y(a)
         cell = mem.mem[a]
@@ -137,6 +155,31 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
             fc = HEAP_COL
         else:
             fc = EMPTY_COL
+
+        if (
+            cell.label
+            and ("." in cell.label or "[" in cell.label)
+            and not getattr(cell, "freed", False)
+        ):
+            group = group_name(cell.label)
+
+            if group not in group_lut:
+                group_lut[group] = next_group_idx
+                next_group_idx += 1
+
+            bg_col = GROUP_BG_BASE if (group_lut[group] % 2 == 0) else GROUP_BG_ALT
+
+            ax.add_patch(
+                mpatches.FancyBboxPatch(
+                    (7.45, cy - CELL_H / 2 - 0.03),  # slightly bigger & lower
+                    CELL_W + 0.1,
+                    CELL_H + 0.06,
+                    boxstyle="round,pad=0.04",
+                    facecolor=bg_col,
+                    edgecolor="none",
+                    zorder=0.5,  # BELOW the actual cell
+                )
+            )
 
         ax.add_patch(
             mpatches.FancyBboxPatch(

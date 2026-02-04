@@ -9,6 +9,7 @@
 """
 
 from visualizer.ops import (
+    Add,
     AssignDeref,
     AssignDoubleDeref,
     CallAssign,
@@ -27,7 +28,7 @@ from visualizer.ops import (
     VecNew,
     VecPush,
 )
-from visualizer.ops.instructions import VecPushDeref
+from visualizer.ops.instructions import Increment, Print, VecPushDeref
 from visualizer.program import FunctionDef, Program
 from visualizer.runner import InteractiveRunner
 
@@ -37,9 +38,15 @@ def p0():
         {
             "main": FunctionDef(
                 body=[
-                    Nop("Simple variable"),
+                    Nop(
+                        "x is set to be at an offset of 2 from the (reversed) top of stack"
+                    ),
                     StackVar("x", "i32", 5),
+                    Nop("y is at an offset of 1"),
                     StackVar("y", "i32", -12),
+                    Nop("Type of a i32 and a is at an offset of 0"),
+                    Add("a", "x", "y"),
+                    Print("a = {a}"),
                     ReturnFunction(),
                 ]
             )
@@ -105,6 +112,7 @@ def p4():
                     VecPush("v", 20),
                     VecPush("v", 30),
                     VecPush("v", 40),
+                    FreeVec("v"),
                     ReturnFunction(),
                 ]
             )
@@ -199,7 +207,7 @@ def p9():
             "main": FunctionDef(
                 body=[
                     Nop("Recursive Stack"),
-                    StackVar("s", "i32", 2),
+                    StackVar("s", "i32", 5),
                     CallFunction("rec", ["s"]),
                     ReturnFunction(),
                 ]
@@ -297,6 +305,7 @@ def p14():
                 body=[
                     CallAssign("x", "get_val"),
                     CallAssign("v", "get_vec", is_vec=True),
+                    FreeVec("v"),
                     ReturnFunction(),
                 ]
             ),
@@ -364,17 +373,17 @@ def p17():
             "main": FunctionDef(
                 body=[
                     Nop("Setup parameters"),
-                    StackVar("x", "i32", 10),
                     VecNew("v", [1, 2], cap=2),
-                    CallFunction("process", ["x", "v"]),
+                    CallFunction("process", ["v"]),
+                    Nop("In rust, v can't be used here, after process..."),
                     ReturnFunction(),
                 ]
             ),
             "process": FunctionDef(
-                size=4,
-                params=["val", "ptr"],
+                size=3,
+                params=["ptr"],
                 body=[
-                    Nop("val is a copy, ptr is a copy of vec"),
+                    Nop("ptr is a copy of the stack variable v from main"),
                     VecPush("ptr", 42),
                     ReturnFunction(),
                 ],
@@ -389,19 +398,44 @@ def p18():
             "main": FunctionDef(
                 body=[
                     Nop("Setup parameters"),
-                    StackVar("x", "i32", 10),
                     VecNew("v", [1, 2], cap=2),
                     Ref("ptr", "v"),
-                    CallFunction("process", ["x", "ptr"]),
+                    CallFunction("process", ["ptr"]),
+                    FreeVec("v"),
                     ReturnFunction(),
                 ]
             ),
             "process": FunctionDef(
-                size=2,
-                params=["val", "ptr"],
+                size=1,
+                params=["ptr"],
                 body=[
-                    Nop("val is a copy, ptr points to main frame"),
+                    Nop("ptr is a reference to the stack variable in main"),
                     VecPushDeref("ptr", 42),
+                    ReturnFunction(),
+                ],
+            ),
+        }
+    )
+
+
+def p19():
+    return Program(
+        {
+            "main": FunctionDef(
+                body=[
+                    Nop("Setup parameters"),
+                    StackVar("x", "i32", 10),
+                    StackVar("y", "i32", 20),
+                    CallFunction("process", ["x", "y"]),
+                    ReturnFunction(),
+                ]
+            ),
+            "process": FunctionDef(
+                params=["x", "y"],
+                body=[
+                    Nop("x and y are copies of their original counter part"),
+                    Increment("x"),
+                    Increment("y"),
                     ReturnFunction(),
                 ],
             ),
@@ -439,6 +473,7 @@ if __name__ == "__main__":
         "16": p16,
         "17": p17,
         "18": p18,
+        "19": p19,
     }
 
     # Header
@@ -476,7 +511,7 @@ if __name__ == "__main__":
             f"{GREEN}16{RESET}: Memory Clean",
             f"{CYAN}17{RESET}: Vec in param",
         ),
-        (f"{CYAN}18{RESET}: &Vec in param", "", ""),
+        (f"{CYAN}18{RESET}: &Vec in param", f"{RED}19{RESET}: Simple params", ""),
     ]
     for row in menu:
         print(f"  {row[0]:<25} {row[1]:<25} {row[2]}")

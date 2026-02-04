@@ -8,6 +8,11 @@ class Nop(Instruction):
         self.description = f"// {text}"
 
 
+class Print(Instruction):
+    def __init__(self, text):
+        self.description = f'println!("{text}");'
+
+
 class Free(Instruction):
     def __init__(self, ptr, size=1):
         self.ptr, self.description, self.size = ptr, f"drop({ptr});", size
@@ -247,6 +252,32 @@ class Decrement(Instruction):
             mem.mem[addr].value = val - 1
 
 
+class Increment(Instruction):
+    def __init__(self, var_name):
+        self.var_name = var_name
+        self.description = f"{var_name} += 1;"
+
+    def execute(self, mem, prog):
+        addr = mem.get_addr(self.var_name)
+        val = mem.mem[addr].value
+        if isinstance(val, int):
+            mem.mem[addr].value = val + 1
+
+
+class Add(Instruction):
+    def __init__(self, a, b, c):
+        self.a, self.b, self.c = a, b, c
+        self.description = f"let {a} = {b} + {c};"
+
+    def execute(self, mem, prog):
+        addr = mem.get_addr(self.b)
+        b = mem.mem[addr]
+        addr = mem.get_addr(self.c)
+        c = mem.mem[addr]
+        if b.typ == c.typ:
+            mem.alloc_stack_var(self.a, c.typ, b.value + c.value, False)
+
+
 class ReturnFunction(Instruction):
     def __init__(self, ret_var=None):
         self.ret_var = ret_var
@@ -439,7 +470,7 @@ class VecPushDeref(Instruction):
 def calc_frame_size(func):
     size = func.size
     for i in func.body:
-        if isinstance(i, (StackVar, HeapAlloc, Ref, Clone)):
+        if isinstance(i, (StackVar, HeapAlloc, Ref, Clone, Add)):
             size += 1
         elif isinstance(i, StaticArray):
             size += len(i.vals)

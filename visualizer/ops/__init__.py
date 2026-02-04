@@ -1,5 +1,6 @@
 from .base import Instruction
 from .instructions import (
+    Add,
     AssignDeref,
     AssignDoubleDeref,
     CallAssign,
@@ -9,7 +10,9 @@ from .instructions import (
     Free,
     FreeVec,
     HeapAlloc,
+    Increment,
     Nop,
+    Print,
     Ref,
     ReturnFunction,
     ReturnIfEquals,
@@ -41,6 +44,9 @@ __all__ = [
     "ReturnIfEquals",
     "calc_frame_size",
     "VecPushDeref",
+    "Add",
+    "Increment",
+    "Print",
 ]
 
 
