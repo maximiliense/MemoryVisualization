@@ -40,18 +40,18 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
 
     # Title
     ax.text(
-        6.5,
-        6.8,
+        6.1,
+        8.1,
         "PEDAGOGICAL MEMORY VISUALIZER",
         color=TEXT_BRIGHT,
-        fontsize=15,
+        fontsize=17,
         fontweight="bold",
         ha="center",
         family="monospace",
     )
     ax.text(
-        6.5,
-        7.6,
+        6.1,
+        7.9,
         "Press [RIGHT ARROW] to step forward",
         color=TEXT_MID,
         fontsize=8,
@@ -195,7 +195,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
 
         # DECIMAL ADDRESSING: Changed f"0x{a:02X}" to f"{a}"
         ax.text(
-            7.4,
+            7.3,
             cy,
             f"0x{a:02X}",
             color=TEXT_MID,
@@ -219,7 +219,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
                 ha="center",
                 va="center",
                 fontweight="bold",
-                fontsize=8,
+                fontsize=10,
                 zorder=2,
             )
 
@@ -230,7 +230,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
                 cell.label,
                 color=TEXT_MID,
                 va="center",
-                fontsize=7,
+                fontsize=9,
             )
 
         # Arrows (Z-order ensured)
@@ -256,14 +256,14 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
     for fidx, frame in enumerate(mem.call_stack):
         y_hi, y_lo = addr_y(frame.base_addr + frame.size - 1), addr_y(frame.base_addr)
         col = FRAME_PALETTE[fidx % len(FRAME_PALETTE)]
-        ax.plot([10.8, 10.8], [y_lo - 0.05, y_hi + 0.05], color=col, lw=2)
+        ax.plot([11.05, 11.05], [y_lo - 0.05, y_hi + 0.05], color=col, lw=2)
         ax.text(
-            11.0,
+            11.25,
             (y_hi + y_lo) / 2,
             frame.name,
             color=col,
             fontweight="bold",
-            fontsize=9,
+            fontsize=11,
             va="center",
         )
 

@@ -38,9 +38,8 @@ def p0():
         {
             "main": FunctionDef(
                 body=[
-                    Nop(
-                        "x is set to be at an offset of 2 from the (reversed) top of stack"
-                    ),
+                    Nop("x is set to be at an offset of 2 "),
+                    Nop("from the (reversed) top of stack"),
                     StackVar("x", "i32", 5),
                     Nop("y is at an offset of 1"),
                     StackVar("y", "i32", -12),
