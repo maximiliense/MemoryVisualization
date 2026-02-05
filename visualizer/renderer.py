@@ -295,7 +295,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
         # DECIMAL ADDRESSING: Changed f"0x{a:02X}" to f"{a}"
         ax.text(
             7.3,
-            cy,
+            cy - 0.015,
             f"0x{a:02X}",
             color=TEXT_MID,
             ha="right",
@@ -354,7 +354,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
 
     ax.plot(
         [
-            7.1,
+            6.5,
             7.5 + CELL_W + 1.2,
         ],  # Horizontal span: starts before labels, ends after labels
         [sep_y, sep_y],  # Vertical position
@@ -367,7 +367,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
 
     # Add a small text label to identify the boundary
     ax.text(
-        7.0,
+        6.4,
         sep_y,
         "LIMIT",
         color=TEXT_DIM,
