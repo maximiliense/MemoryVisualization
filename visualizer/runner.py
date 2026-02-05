@@ -5,7 +5,6 @@ from visualizer.ops import (
     CallAssign,
     CallFunction,
     ReturnFunction,
-    ReturnIfEquals,
     calc_frame_size,
 )
 from visualizer.ops.instructions import IfElse
@@ -14,14 +13,23 @@ from visualizer.renderer import BG, render_to_ax
 
 
 class InteractiveRunner:
-    def __init__(self, program):
+    def __init__(self, program, fig=None, ax=None, events=None):
         self.program, self.mem = program, MemoryModel()
         self.mem.push_frame("main", calc_frame_size(program.functions["main"]))
         self.pc = PC("main", 0)
-        self.fig, self.ax = plt.subplots(figsize=(14, 9), facecolor=BG)
-        self.fig.canvas.mpl_connect("key_press_event", self.on_press)
+
+        # Use existing window if provided, else create new
+        if fig and ax:
+            self.fig, self.ax = fig, ax
+
+        else:
+            self.fig, self.ax = plt.subplots(figsize=(14, 9), facecolor=BG)
+
         self.update_display()
-        plt.show()
+
+        # Only call plt.show() if we created the window here
+        if not fig:
+            plt.show()
 
     def on_press(self, event):
         if event.key == "right":
@@ -90,7 +98,6 @@ class InteractiveRunner:
                     self.pc.line_idx = resume_idx
                     continue  # Check the parent body now
                 else:
-                    # We finished the main function
                     break
             else:
                 # We found a valid instruction line!

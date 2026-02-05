@@ -1,5 +1,3 @@
-from typing import Any, List, Optional
-
 from visualizer.architecture import MEM_SIZE
 
 from . import Instruction

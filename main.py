@@ -8,6 +8,7 @@
 ============================================================
 """
 
+from visualizer.launcher import ProgramLauncher
 from visualizer.ops import (
     Add,
     AssignDeref,
@@ -33,11 +34,10 @@ from visualizer.ops.instructions import (
     Increment,
     Print,
     Set,
-    Sub,
     VecPushDeref,
 )
 from visualizer.program import FunctionDef, Program
-from visualizer.runner import InteractiveRunner
+from visualizer.renderer import FRAME_PALETTE
 
 
 def p0():
@@ -95,12 +95,14 @@ def p2():
 def p3():
     return Program(
         {
-            "add": FunctionDef(body=[StackVar("a", "i32", 5), ReturnFunction()]),
+            "hello_world": FunctionDef(
+                body=[StackVar("a", "i32", 5), Print("Hello, world!"), ReturnFunction()]
+            ),
             "main": FunctionDef(
                 body=[
                     Nop("Function Calls"),
                     StackVar("x", "i32", 1),
-                    CallFunction("add"),
+                    CallFunction("hello_world"),
                     ReturnFunction(),
                 ]
             ),
@@ -437,7 +439,9 @@ def p19():
                     Nop("Setup parameters"),
                     StackVar("x", "i32", 10),
                     StackVar("y", "i32", 20),
+                    Nop("Calling `process` with params x & y"),
                     CallFunction("process", ["x", "y"]),
+                    Print("x={x}, y={y}"),
                     ReturnFunction(),
                 ]
             ),
@@ -516,93 +520,29 @@ def p21():
 
 
 if __name__ == "__main__":
-    # Theme Colors
-    CYAN = "\033[96m"
-    YELLOW = "\033[93m"
-    MAGENTA = "\033[95m"
-    GREEN = "\033[92m"
-    RED = "\033[91m"
-    BOLD = "\033[1m"
-    RESET = "\033[0m"
-
     PROGS = {
-        "0": p0,
-        "1": p1,
-        "2": p2,
-        "3": p3,
-        "4": p4,
-        "5": p5,
-        "6": p6,
-        "7": p7,
-        "8": p8,
-        "9": p9,
-        "10": p10,
-        "11": p11,
-        "12": p12,
-        "13": p13,
-        "14": p14,
-        "15": p15,
-        "16": p16,
-        "17": p17,
-        "18": p18,
-        "19": p19,
-        "20": p20,
-        "21": p21,
+        "Stack variables": (p0, FRAME_PALETTE[0]),  # stack
+        "Heap variables": (p1, FRAME_PALETTE[1]),  # heap
+        "Clone and drop": (p2, FRAME_PALETTE[1]),  # heap
+        "Basic function call": (p3, FRAME_PALETTE[2]),  # functions
+        "Vec realloc": (p4, FRAME_PALETTE[1]),  # heap
+        "Static array": (p5, FRAME_PALETTE[0]),  # stack
+        "References": (p6, FRAME_PALETTE[0]),  # stack
+        "Function with params": (p7, FRAME_PALETTE[2]),  # functions
+        "Nested calls": (p8, FRAME_PALETTE[2]),  # functions
+        "Recursive stack": (p9, FRAME_PALETTE[2]),  # functions
+        "Shadowing": (p10, FRAME_PALETTE[2]),  # functions
+        "Heap objects": (p11, FRAME_PALETTE[1]),  # heap
+        "Many references": (p12, FRAME_PALETTE[0]),  # stack
+        "Stack overflow": (p13, FRAME_PALETTE[2]),  # functions
+        "Returning values": (p14, FRAME_PALETTE[2]),  # functions
+        "Memory leak": (p15, FRAME_PALETTE[1]),  # heap
+        "Clean heap alloc": (p16, FRAME_PALETTE[1]),  # heap
+        "Function vec by copy": (p17, FRAME_PALETTE[1]),  # heap
+        "Function vec by ref": (p18, FRAME_PALETTE[1]),  # heap
+        "Basic func & params": (p19, FRAME_PALETTE[2]),  # function
+        "Complex realloc": (p20, FRAME_PALETTE[1]),  # heap
+        "Fibonacci": (p21, FRAME_PALETTE[3]),
     }
 
-    # Header
-    print(f"\n{MAGENTA}{BOLD} ═══ MEMORY VISUALIZER EXAMPLES ═══{RESET}")
-
-    # Grid Layout
-    menu = [
-        (
-            f"{CYAN}0{RESET}: Simple Var",
-            f"{CYAN}1{RESET}: Box (Heap)",
-            f"{CYAN}2{RESET}: Clone/Drop",
-        ),
-        (
-            f"{CYAN}3{RESET}: Call Stack",
-            f"{CYAN}4{RESET}: Vec Growth",
-            f"{CYAN}5{RESET}: Static Array",
-        ),
-        (
-            f"{CYAN}6{RESET}: References",
-            f"{CYAN}7{RESET}: Params",
-            f"{CYAN}8{RESET}: Nested Calls",
-        ),
-        (
-            f"{CYAN}9{RESET}: Recursion",
-            f"{CYAN}10{RESET}: Shadowing",
-            f"{CYAN}11{RESET}: Mix All",
-        ),
-        (
-            f"{CYAN}12{RESET}: Ref to Ref",
-            f"{RED}13{RESET}: Stack Overflow",
-            f"{GREEN}14{RESET}: Return Values",
-        ),
-        (
-            f"{YELLOW}15{RESET}: Memory Leak",
-            f"{GREEN}16{RESET}: Memory Clean",
-            f"{CYAN}17{RESET}: Vec in param",
-        ),
-        (
-            f"{CYAN}18{RESET}: &Vec in param",
-            f"{RED}19{RESET}: Simple params",
-            f"{RED}20{RESET}: Reallocate",
-        ),
-        (f"{CYAN}21{RESET}: Fibonacci", "", ""),
-    ]
-    for row in menu:
-        print(f"  {row[0]:<25} {row[1]:<25} {row[2]}")
-
-    print(f"{MAGENTA}{BOLD} ══════════════════════════════════{RESET}")
-
-    try:
-        c = input(f"{YELLOW}Select an illustration ID > {RESET}").strip()
-        if c in PROGS:
-            print(f"\n{GREEN}🚀 Launching Illustration {c}...{RESET}\n")
-            InteractiveRunner(PROGS[c]())
-        else:
-            print(f"\n{RED}❌ Invalid ID. Please run again and select 0-16.{RESET}")
-    except KeyboardInterrupt:
-        print(f"\n{RED}👋 Exiting...{RESET}")
+    ProgramLauncher(PROGS)

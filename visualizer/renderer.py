@@ -49,8 +49,6 @@ def draw_code_block(
     ax, instructions, start_y, pc, fn_name, is_active_fn, indent=0, is_root=False
 ):
     """Recursive helper to draw instructions and nested blocks."""
-    from visualizer.ops.instructions import IfElse
-
     y = start_y
     for i, instr in enumerate(instructions):
         is_pc_here = False
@@ -170,7 +168,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
     cursor_y = 7.0
     for fn_name, fdef in program.functions.items():
         is_active_fn = fn_name == pc.fn_name
-        is_in_stack = any(f == fn_name for f, l, _ in pc.ret_stack)
+        is_in_stack = any(f == fn_name for f, _, _ in pc.ret_stack)
 
         hdr_col = FRAME_PALETTE[
             list(program.functions.keys()).index(fn_name) % len(FRAME_PALETTE)
