@@ -24,6 +24,7 @@ class InteractiveRunner:
 
         else:
             self.fig, self.ax = plt.subplots(figsize=(14, 9), facecolor=BG)
+            self.fig.canvas.mpl_connect("key_press_event", self.on_press)
 
         self.update_display()
 
