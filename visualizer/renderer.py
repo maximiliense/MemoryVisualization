@@ -52,7 +52,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
     ax.text(
         6.1,
         8.1,
-        "PEDAGOGICAL MEMORY VISUALIZER",
+        "MEMORY VISUALIZER",
         color=TEXT_BRIGHT,
         fontsize=17,
         fontweight="bold",
