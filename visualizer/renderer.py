@@ -41,10 +41,10 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
     # Title
     ax.text(
         6.5,
-        7.8,
+        6.8,
         "PEDAGOGICAL MEMORY VISUALIZER",
         color=TEXT_BRIGHT,
-        fontsize=12,
+        fontsize=15,
         fontweight="bold",
         ha="center",
         family="monospace",
@@ -69,12 +69,12 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
         ax.add_patch(mpatches.Rectangle((0.2, cursor_y - 0.3), 5.0, 0.3, color=hdr_col))
         ax.text(
             0.3,
-            cursor_y - 0.15,
+            cursor_y - 0.2,
             f"fn {fn_name}({', '.join(fdef.params)}) {{",
             color=BG,
             fontweight="bold",
             family="monospace",
-            fontsize=9,
+            fontsize=12,
         )
 
         for i, instr in enumerate(fdef.body):
@@ -91,7 +91,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
                 f"{prefix}{instr.description}",
                 color=col,
                 family="monospace",
-                fontsize=8,
+                fontsize=10,
             )
         cursor_y -= len(fdef.body) * 0.22 + 0.6
 
@@ -118,7 +118,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
         addr_y(STACK_TOP),
         "STACK",
         color=TEXT_MID,
-        fontsize=10,
+        fontsize=14,
         fontweight="bold",
         rotation=90,
         va="top",
@@ -129,7 +129,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
         addr_y(HEAP_BOTTOM),
         "HEAP",
         color=HEAP_COL,
-        fontsize=10,
+        fontsize=14,
         fontweight="bold",
         rotation=90,
         va="bottom",
@@ -202,7 +202,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
             ha="right",
             va="center",
             family="monospace",
-            fontsize=7,
+            fontsize=9,
         )
 
         if cell.value is not None:
@@ -288,5 +288,5 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
             family="monospace",
         )
 
-    ax.set_xlim(0, 13)
+    ax.set_xlim(0, 12.5)
     ax.set_ylim(0, 8)
