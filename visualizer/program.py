@@ -7,7 +7,10 @@ from visualizer.ops import Instruction
 class PC:
     fn_name: str
     line_idx: int
-    ret_stack: list[tuple[str, int]] = field(default_factory=list)
+    block_stack: list[tuple[list, int]] = field(default_factory=list)
+    ret_stack: list[tuple[str, int, list]] = field(
+        default_factory=list
+    )  # (fn_name, line_idx, block_stack)
 
 
 @dataclass

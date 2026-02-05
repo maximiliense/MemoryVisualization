@@ -11,6 +11,7 @@ from visualizer.architecture import (
     STACK_TOP,
     MemoryModel,
 )
+from visualizer.ops.instructions import IfElse
 from visualizer.program import PC, Program
 
 BG = "#1E1E2E"
@@ -44,11 +45,107 @@ def modulate_luminance(color, factor):
     return (min(r * factor, 1.0), min(g * factor, 1.0), min(b * factor, 1.0))
 
 
+def draw_code_block(
+    ax, instructions, start_y, pc, fn_name, is_active_fn, indent=0, is_root=False
+):
+    """Recursive helper to draw instructions and nested blocks."""
+    from visualizer.ops.instructions import IfElse
+
+    y = start_y
+    for i, instr in enumerate(instructions):
+        is_pc_here = False
+        print(instr.description, i, pc.line_idx)
+        if is_active_fn:
+            # 1. We are in a nested block (IfElse)
+            if pc.block_stack:
+                # The active block is the one at the TOP of the block_stack
+                (active_block_instrs, _) = pc.block_stack[-1]
+                if pc.line_idx == i and instructions is active_block_instrs:
+                    is_pc_here = True
+            # 2. We are in the root function body
+            elif is_root:
+                if pc.line_idx == i:
+                    is_pc_here = True
+
+        color = CURR_LINE if is_pc_here else (TEXT_BRIGHT if is_active_fn else TEXT_DIM)
+
+        # Dim comments
+        if instr.description.startswith("//") and not is_pc_here:
+            color = TEXT_DIM
+
+        prefix = "▶ " if is_pc_here else "  "
+        indent_str = "    " * indent
+
+        ax.text(
+            0.4,
+            y,
+            f"{prefix}{indent_str}{instr.description}",
+            color=color,
+            family="monospace",
+            fontsize=10,
+            style="italic" if instr.description.startswith("//") else "normal",
+            va="center",
+        )
+        y -= 0.22
+
+        if isinstance(instr, IfElse):
+            # Draw 'then' block
+            y = draw_code_block(
+                ax,
+                instr.then_body,
+                y,
+                pc,
+                fn_name,
+                is_active_fn,
+                indent + 1,
+                is_root=False,
+            )
+
+            # Draw 'else' separator
+            # Note: color is based on the 'if' line status
+            ax.text(
+                0.4,
+                y,
+                f"  {indent_str}}} else {{",
+                color=color,
+                family="monospace",
+                fontsize=10,
+                va="center",
+            )
+            y -= 0.22
+
+            # Draw 'else' block
+            y = draw_code_block(
+                ax,
+                instr.else_body,
+                y,
+                pc,
+                fn_name,
+                is_active_fn,
+                indent + 1,
+                is_root=False,
+            )
+
+            # Draw closing brace
+            ax.text(
+                0.4,
+                y,
+                f"  {indent_str}}}",
+                color=color,
+                family="monospace",
+                fontsize=10,
+                va="center",
+            )
+            y -= 0.22
+
+    return y
+
+
 def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
     ax.set_facecolor(BG)
     ax.set_axis_off()
 
-    # Title
+    # --- TITLE ---
     ax.text(
         6.1,
         8.1,
@@ -69,13 +166,17 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
         family="monospace",
     )
 
-    # CODE PANEL
+    # --- CODE PANEL ---
     cursor_y = 7.0
     for fn_name, fdef in program.functions.items():
-        is_active = fn_name == pc.fn_name or any(f == fn_name for f, l in pc.ret_stack)  # noqa: E741
+        is_active_fn = fn_name == pc.fn_name
+        is_in_stack = any(f == fn_name for f, l, _ in pc.ret_stack)
+
         hdr_col = FRAME_PALETTE[
             list(program.functions.keys()).index(fn_name) % len(FRAME_PALETTE)
         ]
+
+        # Function Header
         ax.add_patch(mpatches.Rectangle((0.2, cursor_y - 0.3), 5.0, 0.3, color=hdr_col))
         ax.text(
             0.3,
@@ -87,57 +188,31 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
             fontsize=12,
         )
 
-        for i, instr in enumerate(fdef.body):
-            ly = cursor_y - 0.5 - (i * 0.22)
+        # RECURSIVE CALL for body
+        new_y = draw_code_block(
+            ax, fdef.body, cursor_y - 0.5, pc, fn_name, is_active_fn, is_root=True
+        )
 
-            # 1. Determine base color based on execution state
-            if fn_name == pc.fn_name and i == pc.line_idx:
-                if instr.description.startswith("//"):
-                    col = CURR_LINE
-                else:
-                    col = CURR_LINE
-            elif is_active:
-                # 2. Check if it's a comment to make it darker
-                if instr.description.startswith("//"):
-                    col = TEXT_DIM  # Darker than TEXT_BRIGHT
-                else:
-                    col = TEXT_BRIGHT
-            else:
-                col = TEXT_DIM
+        # Closing function brace
+        ax.text(
+            0.3,
+            new_y,
+            "}",
+            color=hdr_col if (is_active_fn or is_in_stack) else TEXT_DIM,
+            fontweight="bold",
+            family="monospace",
+            fontsize=12,
+        )
 
-            prefix = "▶ " if (fn_name == pc.fn_name and i == pc.line_idx) else "  "
+        cursor_y = new_y - 0.6
 
-            ax.text(
-                0.4,
-                ly,
-                f"{prefix}{instr.description}",
-                color=col,
-                family="monospace",
-                # Slightly italicize comments for better pedagogical contrast
-                style="italic" if instr.description.startswith("//") else "normal",
-                fontsize=10,
-            )
-
-        cursor_y -= len(fdef.body) * 0.22 + 0.6
-
-    # MEMORY PANEL CONFIG
+    # --- MEMORY PANEL (KEEPING YOUR LOGIC) ---
     CELL_W, ROW, CELL_H = 2.6, 0.28, 0.22
 
     def addr_y(a):
         return 7.2 - ((MEM_SIZE - 1) - a) * ROW
 
-    # Divider and Section Labels
-    boundary_y = (addr_y(STACK_LIMIT) + addr_y(STACK_LIMIT - 1)) / 2
-    ax.axhline(
-        boundary_y,
-        xmin=0.58,
-        xmax=0.85,
-        color=TEXT_DIM,
-        linestyle="--",
-        lw=1,
-        alpha=0.5,
-    )
-
+    # Sections labels
     ax.text(
         6.8,
         addr_y(STACK_TOP),
@@ -161,8 +236,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
         ha="right",
     )
 
-    group_lut = {}
-    next_group_idx = 0
+    group_lut, next_group_idx = {}, 0
 
     GROUP_BG_BASE = (1, 1, 1, 0.28)  # soft light plate
     GROUP_BG_ALT = (1, 1, 1, 0.44)  # alternating luminance
@@ -277,7 +351,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
                 )
             )
 
-    # Call Stack Frames (Brackets on the right)
+    # --- STACK FRAMES (RIGHT SIDE BRACKETS) ---
     for fidx, frame in enumerate(mem.call_stack):
         y_hi, y_lo = addr_y(frame.base_addr + frame.size - 1), addr_y(frame.base_addr)
         col = FRAME_PALETTE[fidx % len(FRAME_PALETTE)]
@@ -292,7 +366,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
             va="center",
         )
 
-    # --- LEGEND (Bottom) ---
+    # --- LEGEND (BOTTOM) ---
     legend_y = 0.0
     legend_items = [
         (HEAP_COL, "Heap Data"),
@@ -300,7 +374,6 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
         (FREE_COL, "Freed/Dropped"),
         (EMPTY_COL, "Unallocated"),
     ]
-
     for i, (color, label) in enumerate(legend_items):
         lx = 1.0 + (i * 2.8)
         ax.add_patch(mpatches.Rectangle((lx, legend_y), 0.4, 0.2, color=color))

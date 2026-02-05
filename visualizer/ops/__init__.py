@@ -10,6 +10,7 @@ from .instructions import (
     Free,
     FreeVec,
     HeapAlloc,
+    IfElse,
     Increment,
     Mul,
     Nop,
@@ -51,6 +52,7 @@ __all__ = [
     "Div",
     "Increment",
     "Print",
+    "IfElse",
 ]
 
 

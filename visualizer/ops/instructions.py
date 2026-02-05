@@ -1,3 +1,5 @@
+from typing import Any, List, Optional
+
 from visualizer.architecture import MEM_SIZE
 
 from . import Instruction
@@ -317,7 +319,7 @@ class Div(Instruction):
 class ReturnFunction(Instruction):
     def __init__(self, ret_var=None):
         self.ret_var = ret_var
-        self.description = f"return {ret_var};}}" if ret_var else "}"
+        self.description = f"return {ret_var};" if ret_var else "return;"
 
     def execute(self, mem, prog):
         curr_frame = mem.call_stack[-1]
@@ -436,6 +438,21 @@ class VecPushDeref(Instruction):
             )
 
 
+class IfElse(Instruction):
+    def __init__(self, var_name, value, then_body, else_body=None, display=""):
+        self.var_name = var_name
+        self.value = value
+        self.then_body = then_body
+        self.else_body = else_body or []
+        # Display shown in the code panel
+        self.description = display or f"if {var_name} == {value} {{"
+
+    def execute(self, mem, prog):
+        addr = mem.get_addr(self.var_name)
+        condition_met = mem.mem[addr].value == self.value
+        return self.then_body if condition_met else self.else_body
+
+
 def push_vec(p_addr, c_addr, l_addr, mem, val):
     ptr = mem.mem[p_addr].value
     length = mem.mem[l_addr].value
@@ -474,7 +491,7 @@ def push_vec(p_addr, c_addr, l_addr, mem, val):
 def calc_frame_size(func):
     size = func.size
     for i in func.body:
-        if isinstance(i, (StackVar, HeapAlloc, Ref, Clone, Add)):
+        if isinstance(i, (StackVar, HeapAlloc, Ref, Clone, Add, Sub, Mul, Div)):
             size += 1
         elif isinstance(i, StaticArray):
             size += len(i.vals)

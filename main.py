@@ -27,7 +27,7 @@ from visualizer.ops import (
     VecNew,
     VecPush,
 )
-from visualizer.ops.instructions import Increment, Print, VecPushDeref
+from visualizer.ops.instructions import IfElse, Increment, Print, Sub, VecPushDeref
 from visualizer.program import FunctionDef, Program
 from visualizer.runner import InteractiveRunner
 
@@ -465,6 +465,34 @@ def p20():
     )
 
 
+def p21():
+    return Program(
+        {
+            "main": FunctionDef(
+                body=[
+                    StackVar("a", "i32", 13),
+                    IfElse(
+                        "a",
+                        12,
+                        [Increment("a")],
+                        [Decrement("a"), Print("Hello, world!"), CallFunction("toto")],
+                    ),
+                    StackVar("b", "i32", 10),
+                    Sub("c", "a", "b"),
+                    ReturnFunction(),
+                ]
+            ),
+            "toto": FunctionDef(
+                body=[
+                    StackVar("a", "i32", 12),
+                    Print("Hello from toto"),
+                    ReturnFunction(),
+                ]
+            ),
+        }
+    )
+
+
 if __name__ == "__main__":
     # Theme Colors
     CYAN = "\033[96m"
@@ -497,6 +525,7 @@ if __name__ == "__main__":
         "18": p18,
         "19": p19,
         "20": p20,
+        "21": p21,
     }
 
     # Header
@@ -539,6 +568,7 @@ if __name__ == "__main__":
             f"{RED}19{RESET}: Simple params",
             f"{RED}20{RESET}: Reallocate",
         ),
+        (f"{CYAN}21{RESET}: IfElse", "", ""),
     ]
     for row in menu:
         print(f"  {row[0]:<25} {row[1]:<25} {row[2]}")
