@@ -271,7 +271,7 @@ def p12():
                     Ref("rrra", "rra"),
                     Ref("rrrra", "rrra"),
                     Ref("rrrrra", "rrrra"),
-                    AssignDeref("*****", "rrrrra", 20),
+                    AssignDeref("*****", "rrrrra", 42),
                     ReturnFunction(),
                 ]
             )
