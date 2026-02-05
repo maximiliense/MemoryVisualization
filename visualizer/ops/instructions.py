@@ -93,41 +93,26 @@ class Ref(Instruction):
 
 
 class AssignDeref(Instruction):
-    def __init__(self, ptr, val):
-        self.ptr, self.val = ptr, val
-        self.description = f"*{self.ptr} = {self.val};"
+    def __init__(self, stars: str, label, value):
+        self.label, self.value, self.nb_deref = label, value, len(stars)
+        self.description = f"{stars}{label} = {value};"
 
     def execute(self, mem, prog):
-        pa = mem.get_addr(self.ptr)
-        target_addr = mem.mem[pa].value
-        if isinstance(target_addr, int) and 0 <= target_addr < MEM_SIZE:
-            mem.mem[target_addr].value = self.val
-
-
-class AssignDoubleDeref(Instruction):
-    def __init__(self, label, value):
-        self.label, self.value = label, value
-        self.description = f"**{label} = {value};"
-
-    def execute(self, mem, prog):
-        # 1. Get the address of the pointer-to-pointer on the stack
-        addr_p1 = mem.get_addr(self.label)
-        p1 = mem.mem[addr_p1].value
-
-        # 2. Dereference first level: p1 must be an integer address
-        if isinstance(p1, int) and 0 <= p1 < len(mem.mem):
-            p2 = mem.mem[p1].value
-
-            # 3. Dereference second level: p2 must be an integer address
-            if isinstance(p2, int) and 0 <= p2 < len(mem.mem):
-                mem.mem[p2].value = self.value
+        nb_deref = self.nb_deref
+        p = mem.get_addr(self.label)
+        while nb_deref > 0:
+            if isinstance(p, int) and 0 <= p < MEM_SIZE:
+                p = mem.mem[p].value
             else:
                 raise ValueError(
-                    f"Double dereference failed: {p1} does not contain a valid address."
+                    f"Error dereferencing: {p} does not contain a valid address."
                 )
+            nb_deref -= 1
+        if isinstance(p, int) and 0 <= p < MEM_SIZE:
+            mem.mem[p].value = self.value
         else:
             raise ValueError(
-                f"First dereference failed: {self.label} does not contain a valid address."
+                f"Error dereferencing: {p} does not contain a valid address."
             )
 
 
@@ -137,7 +122,8 @@ class HeapAlloc(Instruction):
         self.description = f"let {label} = Box::new({value});"
 
     def execute(self, mem, prog):
-        ha = mem.alloc_heap("data", "i32", self.value)
+        ha = mem.alloc_heap("data", "i32")
+        mem.mem[ha].value = self.value
         mem.alloc_stack_var(self.label, "Box<i32>", ha, is_pointer=True)
 
 
@@ -276,6 +262,56 @@ class Add(Instruction):
         c = mem.mem[addr]
         if b.typ == c.typ:
             mem.alloc_stack_var(self.a, c.typ, b.value + c.value, False)
+        else:
+            raise ValueError(f"Error: {b.value} and {c.value} have incompatible types")
+
+
+class Sub(Instruction):
+    def __init__(self, a, b, c):
+        self.a, self.b, self.c = a, b, c
+        self.description = f"let {a} = {b} - {c};"
+
+    def execute(self, mem, prog):
+        addr = mem.get_addr(self.b)
+        b = mem.mem[addr]
+        addr = mem.get_addr(self.c)
+        c = mem.mem[addr]
+        if b.typ == c.typ:
+            mem.alloc_stack_var(self.a, c.typ, b.value - c.value, False)
+        else:
+            raise ValueError(f"Error: {b.value} and {c.value} have incompatible types")
+
+
+class Mul(Instruction):
+    def __init__(self, a, b, c):
+        self.a, self.b, self.c = a, b, c
+        self.description = f"let {a} = {b} * {c};"
+
+    def execute(self, mem, prog):
+        addr = mem.get_addr(self.b)
+        b = mem.mem[addr]
+        addr = mem.get_addr(self.c)
+        c = mem.mem[addr]
+        if b.typ == c.typ:
+            mem.alloc_stack_var(self.a, c.typ, b.value * c.value, False)
+        else:
+            raise ValueError(f"Error: {b.value} and {c.value} have incompatible types")
+
+
+class Div(Instruction):
+    def __init__(self, a, b, c):
+        self.a, self.b, self.c = a, b, c
+        self.description = f"let {a} = {b} / {c};"
+
+    def execute(self, mem, prog):
+        addr = mem.get_addr(self.b)
+        b = mem.mem[addr]
+        addr = mem.get_addr(self.c)
+        c = mem.mem[addr]
+        if b.typ == c.typ:
+            mem.alloc_stack_var(self.a, c.typ, b.value / c.value, False)
+        else:
+            raise ValueError(f"Error: {b.value} and {c.value} have incompatible types")
 
 
 class ReturnFunction(Instruction):
@@ -324,7 +360,8 @@ class Clone(Instruction):
             old_value = mem.mem[ha].value
 
             # 4. Allocate new space on the heap and copy the value
-            new_ha = mem.alloc_heap("data", "i32", old_value)
+            new_ha = mem.alloc_heap("data", "i32")
+            mem.mem[new_ha].value = old_value
 
             # 5. Create the new pointer on the stack
             mem.alloc_stack_var(self.new_l, "Box<i32>", new_ha, is_pointer=True)
@@ -349,9 +386,10 @@ class VecNew(Instruction):
         self.description = f"let mut {name} = vec!{vals};"
 
     def execute(self, mem, prog):
-        base = mem._hp
+        base = mem.alloc_heap(None, "i32", self.cap)
         for i, v in enumerate(self.vals):
-            mem.alloc_heap(f"{self.name}[{i}]", "i32", v)
+            mem.mem[base + i].value = v
+            mem.mem[base + i].label = f"{self.name}[{i}]"
         mem.alloc_stack_var(f"{self.name}.ptr", "ptr", base, is_pointer=True)
         mem.alloc_stack_var(f"{self.name}.len", "usize", len(self.vals))
         mem.alloc_stack_var(f"{self.name}.cap", "usize", self.cap)
@@ -367,104 +405,70 @@ class VecPush(Instruction):
         p_addr = mem.get_addr(f"{self.name}.ptr")
         l_addr = mem.get_addr(f"{self.name}.len")
         c_addr = mem.get_addr(f"{self.name}.cap")
-
-        # 2. Extract values
-        ptr = mem.mem[p_addr].value
-        length = mem.mem[l_addr].value
-        cap = mem.mem[c_addr].value
-
-        # 3. Type validation for the type checker and safety
-        if not (
-            isinstance(ptr, int) and isinstance(length, int) and isinstance(cap, int)
-        ):
-            raise ValueError(
-                f"VecPush failed: {self.name} metadata is corrupted or null."
-            )
-
-        if length >= cap:
-            new_cap = cap * 2
-            new_ptr = mem._hp
-
-            # Reallocation: Move old data to new heap location
-            for i in range(length):
-                # Ensure we are indexing with integers
-                old_cell_idx = ptr + i
-                old_val = mem.mem[old_cell_idx].value
-
-                mem.mem[old_cell_idx].freed = True
-                mem.mem[old_cell_idx].value = "FREED"
-                mem.alloc_heap(f"{self.name}[{i}]", "i32", old_val)
-
-            # Prepare space for the remaining capacity
-            for i in range(length, new_cap):
-                mem.alloc_heap(f"{self.name}[{i}]", "i32", None)
-
-            # Update stack metadata
-            mem.mem[p_addr].value = new_ptr
-            mem.mem[c_addr].value = new_cap
-            ptr = new_ptr  # Update local ptr for the final insertion
-
-        # 4. Final insertion of the pushed value
-        # ptr is guaranteed to be an int here due to the check above
-        mem.mem[ptr + length].value = self.val
-        mem.mem[l_addr].value = length + 1
+        push_vec(p_addr, c_addr, l_addr, mem, self.val)
 
 
 class VecPushDeref(Instruction):
-    def __init__(self, ptr_name, val):
-        self.ptr_name, self.val = ptr_name, val
-        self.description = f"(*{ptr_name}).push({val});"
+    def __init__(self, stars, ptr_name, val):
+        self.ptr_name, self.val, self.nb_deref = ptr_name, val, len(stars)
+        self.description = f"({stars}{ptr_name}).push({val});"
 
     def execute(self, mem, prog):
-        # 1. Get the address stored in the pointer
-        pa = mem.get_addr(self.ptr_name)
-        base_addr = mem.mem[pa].value  # This points to 'v.cap' in the caller's frame
+        nb_deref = self.nb_deref
+        p = mem.get_addr(self.ptr_name)
+        while nb_deref > 0:
+            if isinstance(p, int) and 0 <= p < MEM_SIZE:
+                p = mem.mem[p].value
+            else:
+                raise ValueError(
+                    f"Error dereferencing: {p} does not contain a valid address."
+                )
+            nb_deref -= 1
+        if isinstance(p, int) and 0 <= p < MEM_SIZE:
+            p_addr = p + 2
+            l_addr = p + 1
+            c_addr = p
 
-        if not isinstance(base_addr, int):
+            push_vec(p_addr, c_addr, l_addr, mem, self.val)
+        else:
             raise ValueError(
-                f"VecPushDeref failed: {self.ptr_name} is not a valid pointer."
+                f"Error dereferencing: {p} does not contain a valid address."
             )
 
-        # 2. Map metadata addresses based on your contiguous stack layout:
-        # ptr is at base, len is +1, cap is +2
-        p_addr = base_addr + 2
-        l_addr = base_addr + 1
-        c_addr = base_addr
 
-        # 3. Extract values from those addresses
-        ptr = mem.mem[p_addr].value
-        length = mem.mem[l_addr].value
-        cap = mem.mem[c_addr].value
+def push_vec(p_addr, c_addr, l_addr, mem, val):
+    ptr = mem.mem[p_addr].value
+    length = mem.mem[l_addr].value
+    cap = mem.mem[c_addr].value
 
-        if not (
-            isinstance(ptr, int) and isinstance(length, int) and isinstance(cap, int)
-        ):
-            raise ValueError(
-                f"VecPushDeref failed: metadata at {base_addr} is corrupted."
-            )
+    if not (isinstance(ptr, int) and isinstance(length, int) and isinstance(cap, int)):
+        raise ValueError(f"VecPushDeref failed: metadata at {c_addr} is corrupted.")
 
-        # 4. Reallocation logic (Same as VecPush)
-        if length >= cap:
-            new_cap = cap * 2
-            new_ptr = mem._hp
+    # 4. Reallocation logic (Same as VecPush)
+    if length >= cap:
+        new_cap = cap * 2
 
-            for i in range(length):
-                old_cell_idx = ptr + i
-                old_val = mem.mem[old_cell_idx].value
-                mem.mem[old_cell_idx].freed = True
-                mem.mem[old_cell_idx].value = "FREED"
-                mem.alloc_heap(f"deref_vec[{i}]", "i32", old_val)
+        addr = mem.alloc_heap(None, "i32", new_cap)
 
-            for i in range(length, new_cap):
-                mem.alloc_heap(f"deref_vec[{i}]", "i32", None)
+        for i in range(length):
+            old_cell_idx = ptr + i
+            old_val = mem.mem[old_cell_idx].value
+            mem.mem[old_cell_idx].freed = True
+            mem.mem[old_cell_idx].value = "FREED"
+            mem.mem[addr + i].value = old_val
+            mem.mem[addr + i].label = f"deref_vec[{i}]"
 
-            mem.mem[p_addr].value = new_ptr
-            mem.mem[c_addr].value = new_cap
-            ptr = new_ptr
+        for i in range(length, new_cap):
+            mem.mem[addr + i].label = f"deref_vec[{i}]"
+            mem.mem[addr + i].value = None
 
-        # 5. Final insertion
-        mem.mem[ptr + length].value = self.val
-        mem.mem[l_addr].value = length + 1
+        mem.mem[p_addr].value = addr
+        mem.mem[c_addr].value = new_cap
+        ptr = addr
+
+    # 5. Final insertion
+    mem.mem[ptr + length].value = val
+    mem.mem[l_addr].value = length + 1
 
 
 def calc_frame_size(func):

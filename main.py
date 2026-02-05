@@ -11,7 +11,6 @@
 from visualizer.ops import (
     Add,
     AssignDeref,
-    AssignDoubleDeref,
     CallAssign,
     CallFunction,
     Clone,
@@ -143,7 +142,7 @@ def p6():
                     Nop("References"),
                     StackVar("x", "i32", 42),
                     Ref("ptr", "x"),
-                    AssignDeref("ptr", 99),
+                    AssignDeref("*", "ptr", 99),
                     ReturnFunction(),
                 ]
             )
@@ -168,7 +167,7 @@ def p7():
                 params=["val", "ptr"],
                 body=[
                     Nop("val is a copy, ptr points to main frame"),
-                    AssignDeref("ptr", 999),
+                    AssignDeref("*", "ptr", 999),
                     ReturnFunction(),
                 ],
             ),
@@ -251,6 +250,8 @@ def p11():
                     VecNew("v", [1, 2], cap=2),
                     HeapAlloc("b", 50),
                     Ref("r", "v.len"),
+                    FreeVec("v"),
+                    Free("b"),
                     ReturnFunction(),
                 ]
             )
@@ -267,7 +268,10 @@ def p12():
                     StackVar("a", "i32", 10),
                     Ref("ra", "a"),
                     Ref("rra", "ra"),
-                    AssignDoubleDeref("rra", 20),
+                    Ref("rrra", "rra"),
+                    Ref("rrrra", "rrra"),
+                    Ref("rrrrra", "rrrra"),
+                    AssignDeref("*****", "rrrrra", 20),
                     ReturnFunction(),
                 ]
             )
@@ -409,7 +413,7 @@ def p18():
                 params=["ptr"],
                 body=[
                     Nop("ptr is a reference to the stack variable in main"),
-                    VecPushDeref("ptr", 42),
+                    VecPushDeref("*", "ptr", 42),
                     ReturnFunction(),
                 ],
             ),
@@ -438,6 +442,25 @@ def p19():
                     ReturnFunction(),
                 ],
             ),
+        }
+    )
+
+
+def p20():
+    return Program(
+        {
+            "main": FunctionDef(
+                body=[
+                    Nop("Vec Realloc"),
+                    VecNew("v", [10], cap=1),
+                    VecPush("v", 20),
+                    HeapAlloc("p", 100),
+                    AssignDeref("*", "p", 1000),
+                    FreeVec("v"),
+                    Free("p"),
+                    ReturnFunction(),
+                ]
+            )
         }
     )
 
@@ -473,6 +496,7 @@ if __name__ == "__main__":
         "17": p17,
         "18": p18,
         "19": p19,
+        "20": p20,
     }
 
     # Header
@@ -510,7 +534,11 @@ if __name__ == "__main__":
             f"{GREEN}16{RESET}: Memory Clean",
             f"{CYAN}17{RESET}: Vec in param",
         ),
-        (f"{CYAN}18{RESET}: &Vec in param", f"{RED}19{RESET}: Simple params", ""),
+        (
+            f"{CYAN}18{RESET}: &Vec in param",
+            f"{RED}19{RESET}: Simple params",
+            f"{RED}20{RESET}: Reallocate",
+        ),
     ]
     for row in menu:
         print(f"  {row[0]:<25} {row[1]:<25} {row[2]}")

@@ -40,7 +40,6 @@ class MemoryModel:
         self.mem: list[MemCell] = [MemCell() for _ in range(MEM_SIZE)]
         self.call_stack: list[StackFrame] = []
         self._sp = STACK_TOP + 1
-        self._hp = HEAP_BOTTOM
 
     def push_frame(self, name: str, size: int, ret_dest=None, ret_is_vec=False):
         new_sp = self._sp - size
@@ -87,13 +86,26 @@ class MemoryModel:
         frame.slots_allocated += span
         return addr
 
-    def alloc_heap(self, label, typ, value) -> int:
-        addr = self._hp
-        if addr >= STACK_LIMIT:
-            raise MemoryError("Heap Overflow")
-        self._hp += 1
-        self.mem[addr] = MemCell(value=value, label=label, typ=typ, frame_idx=-1)
+    def alloc_heap(self, label, typ, size=1) -> int:
+        addr = HEAP_BOTTOM
+        while not self._has_enough_space(addr, size):
+            addr += 1
+            if addr >= STACK_LIMIT:
+                raise MemoryError("Heap Overflow")
+        for a in range(addr, addr + size):
+            self.mem[a] = MemCell(value=None, label=label, typ=typ, frame_idx=-1)
         return addr
+
+    def _has_enough_space(self, addr, size) -> bool:
+        i = 0
+        if addr + size > STACK_LIMIT:
+            return False
+
+        while i < size:
+            if self.mem[addr + i].value is not None and not self.mem[addr + i].freed:
+                return False
+            i += 1
+        return True
 
     def get_addr(self, label) -> int:
         for f in reversed(self.call_stack):
