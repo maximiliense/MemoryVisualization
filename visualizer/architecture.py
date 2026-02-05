@@ -8,26 +8,6 @@ STACK_TOP = MEM_SIZE - 1
 HEAP_BOTTOM = 1
 STACK_LIMIT = 12
 
-BG = "#1E1E2E"
-HEAP_COL = "#C08050"
-FREE_COL = "#4A4A5A"
-EMPTY_COL = "#2A2B3D"
-PTR_COL = "#E8506A"
-TEXT_BRIGHT = "#CDD6F4"
-TEXT_DIM = "#585B70"
-TEXT_MID = "#A6ADC8"
-CURR_LINE = "#F9E2AF"
-STRIP_EDGE = "#45475A"
-
-FRAME_PALETTE = [
-    "#5B8DB8",
-    "#7B68AE",
-    "#4CAF7B",
-    "#D4845A",
-    "#E8506A",
-    "#5BB8D4",
-    "#C9A84C",
-]
 
 # ═══════════════════════════════════════════════════════════
 #  MODELS

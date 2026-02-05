@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-from visualizer.architecture import BG, MemoryModel
+from visualizer.architecture import MemoryModel
 from visualizer.ops import (
     CallAssign,
     CallFunction,
@@ -9,7 +9,7 @@ from visualizer.ops import (
     calc_frame_size,
 )
 from visualizer.program import PC
-from visualizer.renderer import render_to_ax
+from visualizer.renderer import BG, render_to_ax
 
 
 class InteractiveRunner:

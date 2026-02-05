@@ -5,24 +5,34 @@ import matplotlib.patches as mpatches
 from matplotlib.patches import FancyArrowPatch
 
 from visualizer.architecture import (
-    BG,
-    CURR_LINE,
-    EMPTY_COL,
-    FRAME_PALETTE,
-    FREE_COL,
     HEAP_BOTTOM,
-    HEAP_COL,
     MEM_SIZE,
-    PTR_COL,
     STACK_LIMIT,
     STACK_TOP,
-    STRIP_EDGE,
-    TEXT_BRIGHT,
-    TEXT_DIM,
-    TEXT_MID,
     MemoryModel,
 )
 from visualizer.program import PC, Program
+
+BG = "#1E1E2E"
+HEAP_COL = "#C08050"
+FREE_COL = "#4A4A5A"
+EMPTY_COL = "#2A2B3D"
+PTR_COL = "#E8506A"
+TEXT_BRIGHT = "#CDD6F4"
+TEXT_DIM = "#585B70"
+TEXT_MID = "#A6ADC8"
+CURR_LINE = "#F9E2AF"
+STRIP_EDGE = "#45475A"
+
+FRAME_PALETTE = [
+    "#5B8DB8",
+    "#7B68AE",
+    "#4CAF7B",
+    "#D4845A",
+    "#E8506A",
+    "#5BB8D4",
+    "#C9A84C",
+]
 
 
 def group_name(label: str) -> str:
@@ -79,20 +89,35 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
 
         for i, instr in enumerate(fdef.body):
             ly = cursor_y - 0.5 - (i * 0.22)
-            col = (
-                CURR_LINE
-                if (fn_name == pc.fn_name and i == pc.line_idx)
-                else (TEXT_BRIGHT if is_active else TEXT_DIM)
-            )
+
+            # 1. Determine base color based on execution state
+            if fn_name == pc.fn_name and i == pc.line_idx:
+                if instr.description.startswith("//"):
+                    col = CURR_LINE
+                else:
+                    col = CURR_LINE
+            elif is_active:
+                # 2. Check if it's a comment to make it darker
+                if instr.description.startswith("//"):
+                    col = TEXT_DIM  # Darker than TEXT_BRIGHT
+                else:
+                    col = TEXT_BRIGHT
+            else:
+                col = TEXT_DIM
+
             prefix = "▶ " if (fn_name == pc.fn_name and i == pc.line_idx) else "  "
+
             ax.text(
                 0.4,
                 ly,
                 f"{prefix}{instr.description}",
                 color=col,
                 family="monospace",
+                # Slightly italicize comments for better pedagogical contrast
+                style="italic" if instr.description.startswith("//") else "normal",
                 fontsize=10,
             )
+
         cursor_y -= len(fdef.body) * 0.22 + 0.6
 
     # MEMORY PANEL CONFIG
@@ -280,11 +305,11 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
         lx = 1.0 + (i * 2.8)
         ax.add_patch(mpatches.Rectangle((lx, legend_y), 0.4, 0.2, color=color))
         ax.text(
-            lx + 0.5,
-            legend_y + 0.08,
+            lx + 0.45,
+            legend_y + 0.05,
             label,
             color=TEXT_MID,
-            fontsize=8,
+            fontsize=10,
             family="monospace",
         )
 
