@@ -1,6 +1,7 @@
 from .base import Instruction
 from .instructions import (
     Add,
+    AddAssign,
     AssignDeref,
     CallAssign,
     CallFunction,
@@ -18,6 +19,7 @@ from .instructions import (
     Ref,
     ReturnFunction,
     ReturnIfEquals,
+    Set,
     StackVar,
     StaticArray,
     Sub,
@@ -33,6 +35,7 @@ __all__ = [
     "AssignDeref",
     "Free",
     "FreeVec",
+    "Set",
     "Nop",
     "ReturnFunction",
     "Decrement",
@@ -44,6 +47,7 @@ __all__ = [
     "VecNew",
     "VecPush",
     "ReturnIfEquals",
+    "AddAssign",
     "calc_frame_size",
     "VecPushDeref",
     "Add",

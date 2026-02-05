@@ -54,7 +54,7 @@ def draw_code_block(
     y = start_y
     for i, instr in enumerate(instructions):
         is_pc_here = False
-        print(instr.description, i, pc.line_idx)
+        # print(instr.description, i, pc.line_idx)
         if is_active_fn:
             # 1. We are in a nested block (IfElse)
             if pc.block_stack:
@@ -210,7 +210,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
     CELL_W, ROW, CELL_H = 2.6, 0.28, 0.22
 
     def addr_y(a):
-        return 7.2 - ((MEM_SIZE - 1) - a) * ROW
+        return 7.7 - ((MEM_SIZE - 1) - a) * ROW
 
     # Sections labels
     ax.text(
@@ -350,6 +350,33 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
                     zorder=5,
                 )
             )
+    sep_y = (addr_y(STACK_LIMIT) + addr_y(STACK_LIMIT - 1)) / 2
+
+    ax.plot(
+        [
+            7.1,
+            7.5 + CELL_W + 1.2,
+        ],  # Horizontal span: starts before labels, ends after labels
+        [sep_y, sep_y],  # Vertical position
+        color="white",
+        linestyle="--",
+        linewidth=1,
+        alpha=0.4,  # Subtly visible but not distracting
+        zorder=0,  # Ensures it stays behind the memory cell patches
+    )
+
+    # Add a small text label to identify the boundary
+    ax.text(
+        7.0,
+        sep_y,
+        "LIMIT",
+        color=TEXT_DIM,
+        fontsize=8,
+        ha="right",
+        va="center",
+        family="monospace",
+        fontweight="bold",
+    )
 
     # --- STACK FRAMES (RIGHT SIDE BRACKETS) ---
     for fidx, frame in enumerate(mem.call_stack):
@@ -367,7 +394,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
         )
 
     # --- LEGEND (BOTTOM) ---
-    legend_y = 0.0
+    legend_y = -0.0
     legend_items = [
         (HEAP_COL, "Heap Data"),
         (FRAME_PALETTE[0], "Stack Frame"),

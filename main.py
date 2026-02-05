@@ -27,7 +27,15 @@ from visualizer.ops import (
     VecNew,
     VecPush,
 )
-from visualizer.ops.instructions import IfElse, Increment, Print, Sub, VecPushDeref
+from visualizer.ops.instructions import (
+    AddAssign,
+    IfElse,
+    Increment,
+    Print,
+    Set,
+    Sub,
+    VecPushDeref,
+)
 from visualizer.program import FunctionDef, Program
 from visualizer.runner import InteractiveRunner
 
@@ -470,24 +478,38 @@ def p21():
         {
             "main": FunctionDef(
                 body=[
-                    StackVar("a", "i32", 13),
-                    IfElse(
-                        "a",
-                        12,
-                        [Increment("a")],
-                        [Decrement("a"), Print("Hello, world!"), CallFunction("toto")],
-                    ),
-                    StackVar("b", "i32", 10),
-                    Sub("c", "a", "b"),
+                    StackVar("n", "i32", 4),
+                    CallAssign("f", "fibonacci", ["n"]),
+                    Print("Fibo(4)={n}"),
                     ReturnFunction(),
                 ]
             ),
-            "toto": FunctionDef(
+            "fibonacci": FunctionDef(
+                size=4,
+                params=["n"],
                 body=[
-                    StackVar("a", "i32", 12),
-                    Print("Hello from toto"),
-                    ReturnFunction(),
-                ]
+                    StackVar("res", "i32", 0),
+                    IfElse(
+                        "n",
+                        1,
+                        [Set("res", 1)],
+                        [
+                            IfElse(
+                                "n",
+                                2,
+                                [Set("res", 1)],
+                                [
+                                    Decrement("n"),
+                                    CallAssign("f1", "fibonacci", ["n"]),
+                                    Decrement("n"),
+                                    CallAssign("f2", "fibonacci", ["n"]),
+                                    AddAssign("res", "f1", "f2"),
+                                ],
+                            )
+                        ],
+                    ),
+                    ReturnFunction("res"),
+                ],
             ),
         }
     )
@@ -568,7 +590,7 @@ if __name__ == "__main__":
             f"{RED}19{RESET}: Simple params",
             f"{RED}20{RESET}: Reallocate",
         ),
-        (f"{CYAN}21{RESET}: IfElse", "", ""),
+        (f"{CYAN}21{RESET}: Fibonacci", "", ""),
     ]
     for row in menu:
         print(f"  {row[0]:<25} {row[1]:<25} {row[2]}")

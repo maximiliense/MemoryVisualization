@@ -3,7 +3,7 @@
 # ═══════════════════════════════════════════════════════════
 from dataclasses import dataclass, field
 
-MEM_SIZE = 24
+MEM_SIZE = 26
 STACK_TOP = MEM_SIZE - 1
 HEAP_BOTTOM = 1
 STACK_LIMIT = 12

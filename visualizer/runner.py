@@ -29,65 +29,72 @@ class InteractiveRunner:
             self.update_display()
 
     def step(self):
-        just_exited_block = False
-        while True:
-            # 1. Determine current context
-            if self.pc.block_stack:
-                body, _ = self.pc.block_stack[-1]
+        # 1. Determine current context to get the instruction
+        if self.pc.block_stack:
+            body, _ = self.pc.block_stack[-1]
+        else:
+            body = self.program.functions[self.pc.fn_name].body
 
-            else:
-                body = self.program.functions[self.pc.fn_name].body
-                _ = None
-
+        # 2. Execute the instruction at the current PC
+        if self.pc.line_idx < len(body):
             instr = body[self.pc.line_idx]
-
             if isinstance(instr, IfElse):
                 chosen_block = instr.execute(self.mem, self.program)
+                # Save the NEXT line of the current scope to resume later
                 self.pc.block_stack.append((chosen_block, self.pc.line_idx + 1))
                 self.pc.line_idx = 0
-                return  # Yield to renderer: Arrow shows on the 'if' line
+                # We stop here so the renderer highlights the first line of the block
+                return
 
-            # 4. If we just exited a block, show the arrow on this line before executing
-            if just_exited_block:
-                just_exited_block = False
-                return  # Show arrow on the next instruction after block
-
-            # 5. Standard Instructions
-            from visualizer.ops import CallAssign, CallFunction, ReturnFunction
-
-            # EXECUTE the current instruction
-            if isinstance(instr, (CallAssign, CallFunction)):
+            elif isinstance(instr, (CallAssign, CallFunction)):
+                # Save context including the block_stack for the return
                 self.pc.ret_stack.append(
-                    (self.pc.fn_name, self.pc.line_idx + 1, self.pc.block_stack)
+                    (
+                        self.pc.fn_name,
+                        self.pc.line_idx + 1,
+                        list(self.pc.block_stack),
+                    )
                 )
-                self.pc.block_stack = []
                 instr.execute(self.mem, self.program)
                 self.pc.fn_name, self.pc.line_idx = instr.target, 0
+                self.pc.block_stack = []
+                return
+
             elif isinstance(instr, ReturnFunction):
                 instr.execute(self.mem, self.program)
                 if self.pc.ret_stack:
                     self.pc.fn_name, self.pc.line_idx, self.pc.block_stack = (
                         self.pc.ret_stack.pop()
                     )
-                    self.pc.block_stack = []
                 else:
                     self.pc.line_idx = len(body)
+                # Don't return yet; we might have returned to the end of a block
             else:
                 instr.execute(self.mem, self.program)
                 self.pc.line_idx += 1
 
-                # if block complete, go out
-                if self.pc.line_idx >= len(body):
-                    if self.pc.block_stack:
-                        # EXIT the block and jump to the parent's resume line
-                        _, target_line = self.pc.block_stack.pop()
-                        # TODO: line_idx + Block length
-                        self.pc.line_idx = target_line
-                        just_exited_block = True
-                    return  # End of program
+        # 3. UNWINDING PHASE: Pop until we are no longer at the end of a body
+        # This ensures that when 'step' ends, we point to the next real operation.
+        while True:
+            # Re-evaluate body based on current (possibly popped) stack
+            if self.pc.block_stack:
+                curr_body, _ = self.pc.block_stack[-1]
+            else:
+                curr_body = self.program.functions[self.pc.fn_name].body
 
-            # PC now points to the NEXT instruction
-            return
+            # If we are past the end of the current block/function...
+            if self.pc.line_idx >= len(curr_body):
+                if self.pc.block_stack:
+                    # Pop the block and "teleport" to the resume line in the parent
+                    _, resume_idx = self.pc.block_stack.pop()
+                    self.pc.line_idx = resume_idx
+                    continue  # Check the parent body now
+                else:
+                    # We finished the main function
+                    break
+            else:
+                # We found a valid instruction line!
+                break
 
     def update_display(self):
         self.ax.clear()

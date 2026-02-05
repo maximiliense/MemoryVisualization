@@ -137,7 +137,11 @@ class CallAssign(Instruction):
             args or [],
             is_vec,
         )
-        self.description = f"let {dest} = {target}(...);" if dest else f"{target}(...);"
+        self.description = (
+            f"let {dest} = {target}({', '.join(self.args)});"
+            if dest
+            else f"{target}({', '.join(self.args)});"
+        )
 
     def execute(self, mem, prog):
         arg_data = [
@@ -240,6 +244,16 @@ class Decrement(Instruction):
             mem.mem[addr].value = val - 1
 
 
+class Set(Instruction):
+    def __init__(self, var_name, value):
+        self.var_name, self.value = var_name, value
+        self.description = f"{var_name} = {value};"
+
+    def execute(self, mem, prog):
+        addr = mem.get_addr(self.var_name)
+        mem.mem[addr].value = self.value
+
+
 class Increment(Instruction):
     def __init__(self, var_name):
         self.var_name = var_name
@@ -264,6 +278,24 @@ class Add(Instruction):
         c = mem.mem[addr]
         if b.typ == c.typ:
             mem.alloc_stack_var(self.a, c.typ, b.value + c.value, False)
+        else:
+            raise ValueError(f"Error: {b.value} and {c.value} have incompatible types")
+
+
+class AddAssign(Instruction):
+    def __init__(self, a, b, c):
+        self.a, self.b, self.c = a, b, c
+        self.description = f"{a} = {b} + {c};"
+
+    def execute(self, mem, prog):
+        addr = mem.get_addr(self.b)
+        b = mem.mem[addr]
+        addr = mem.get_addr(self.c)
+        c = mem.mem[addr]
+        addr = mem.get_addr(self.a)
+        a = mem.mem[addr]
+        if b.typ == c.typ:
+            a.value = b.value + c.value
         else:
             raise ValueError(f"Error: {b.value} and {c.value} have incompatible types")
 
@@ -490,13 +522,14 @@ def push_vec(p_addr, c_addr, l_addr, mem, val):
 
 def calc_frame_size(func):
     size = func.size
-    for i in func.body:
-        if isinstance(i, (StackVar, HeapAlloc, Ref, Clone, Add, Sub, Mul, Div)):
-            size += 1
-        elif isinstance(i, StaticArray):
-            size += len(i.vals)
-        elif isinstance(i, VecNew):
-            size += 3
-        elif isinstance(i, CallAssign) and i.dest:
-            size += 3 if i.is_vec else 1
+    if size == 0:
+        for i in func.body:
+            if isinstance(i, (StackVar, HeapAlloc, Ref, Clone, Add, Sub, Mul, Div)):
+                size += 1
+            elif isinstance(i, StaticArray):
+                size += len(i.vals)
+            elif isinstance(i, VecNew):
+                size += 3
+            elif isinstance(i, CallAssign) and i.dest:
+                size += 3 if i.is_vec else 1
     return max(size, 1)
