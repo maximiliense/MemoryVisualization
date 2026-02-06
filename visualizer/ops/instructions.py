@@ -478,7 +478,7 @@ class VecPush(Instruction):
         p_addr = mem.get_addr(f"{self.name}.ptr")
         l_addr = mem.get_addr(f"{self.name}.len")
         c_addr = mem.get_addr(f"{self.name}.cap")
-        push_vec(p_addr, c_addr, l_addr, mem, self.val)
+        push_vec(p_addr, c_addr, l_addr, mem, self.val, self.name)
 
 
 class VecPushDeref(Instruction):
@@ -502,7 +502,7 @@ class VecPushDeref(Instruction):
             l_addr = p + 1
             c_addr = p
 
-            push_vec(p_addr, c_addr, l_addr, mem, self.val)
+            push_vec(p_addr, c_addr, l_addr, mem, self.val, self.ptr_name)
         else:
             raise ValueError(
                 f"Error dereferencing: {p} does not contain a valid address."
@@ -524,7 +524,7 @@ class IfElse(Instruction):
         return self.then_body if condition_met else self.else_body
 
 
-def push_vec(p_addr, c_addr, l_addr, mem, val):
+def push_vec(p_addr, c_addr, l_addr, mem, val, name):
     ptr = mem.mem[p_addr].value
     length = mem.mem[l_addr].value
     cap = mem.mem[c_addr].value
@@ -544,10 +544,10 @@ def push_vec(p_addr, c_addr, l_addr, mem, val):
             mem.mem[old_cell_idx].freed = True
             mem.mem[old_cell_idx].value = "FREED"
             mem.mem[addr + i].value = old_val
-            mem.mem[addr + i].label = f"deref_vec[{i}]"
+            mem.mem[addr + i].label = f"{name}[{i}]"
 
         for i in range(length, new_cap):
-            mem.mem[addr + i].label = f"deref_vec[{i}]"
+            mem.mem[addr + i].label = f"{name}[{i}]"
             mem.mem[addr + i].value = None
 
         mem.mem[p_addr].value = addr
