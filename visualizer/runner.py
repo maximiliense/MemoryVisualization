@@ -2,12 +2,11 @@ import matplotlib.pyplot as plt
 
 from visualizer.architecture import MemoryModel
 from visualizer.ops import (
-    CallAssign,
     CallFunction,
     ReturnFunction,
     calc_frame_size,
 )
-from visualizer.ops.instructions import IfElse
+from visualizer.ops.instructions import IfElse, ReturnIfEquals
 from visualizer.program import PC
 from visualizer.renderer import BG, render_to_ax
 
@@ -47,6 +46,8 @@ class InteractiveRunner:
         # 2. Execute the instruction at the current PC
         if self.pc.line_idx < len(body):
             instr = body[self.pc.line_idx]
+            if isinstance(instr, ReturnIfEquals) and instr.test(self.mem, self.program):
+                instr = ReturnFunction()
             if isinstance(instr, IfElse):
                 chosen_block = instr.execute(self.mem, self.program)
                 # Save the NEXT line of the current scope to resume later
@@ -55,7 +56,7 @@ class InteractiveRunner:
                 # We stop here so the renderer highlights the first line of the block
                 return
 
-            elif isinstance(instr, (CallAssign, CallFunction)):
+            elif isinstance(instr, (CallFunction)):
                 # Save context including the block_stack for the return
                 self.pc.ret_stack.append(
                     (

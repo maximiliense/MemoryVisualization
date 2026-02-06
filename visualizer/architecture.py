@@ -32,7 +32,8 @@ class StackFrame:
     vars_map: dict[str, int] = field(default_factory=dict)
     slots_allocated: int = 0
     ret_dest: str | None = None
-    ret_is_vec: bool = False
+    ret_type: str | None = None
+    ret_size: int | None = None
 
 
 class MemoryModel:
@@ -41,7 +42,9 @@ class MemoryModel:
         self.call_stack: list[StackFrame] = []
         self._sp = STACK_TOP + 1
 
-    def push_frame(self, name: str, size: int, ret_dest=None, ret_is_vec=False):
+    def push_frame(
+        self, name: str, size: int, ret_dest=None, ret_type=None, ret_size=None
+    ):
         new_sp = self._sp - size
         if new_sp < STACK_LIMIT:
             raise MemoryError("Stack Overflow")
@@ -51,7 +54,8 @@ class MemoryModel:
             base_addr=new_sp,
             size=size,
             ret_dest=ret_dest,
-            ret_is_vec=ret_is_vec,
+            ret_type=ret_type,
+            ret_size=ret_size,
         )
         self.call_stack.append(frame)
         self._sp = new_sp

@@ -56,7 +56,7 @@ class FreeVec(Instruction):
         mem.mem[c_addr].value = 0
 
 
-class StackVar(Instruction):
+class LetVar(Instruction):
     def __init__(self, label, typ, value=None, is_pointer=False):
         self.label, self.typ, self.value, self.is_pointer = (
             label,
@@ -96,7 +96,7 @@ class StackVarFromVar(Instruction):
         mem.alloc_stack_var(self.label, var.typ, var.value, var.is_pointer)
 
 
-class Assign(Instruction):
+class AssignVar(Instruction):
     def __init__(self, label, var):
         self.label, self.var = (label, var)
         self.description = f"{label} = {var};"
@@ -168,47 +168,104 @@ class HeapAlloc(Instruction):
         mem.alloc_stack_var(self.label, "Box<i32>", ha, is_pointer=True)
 
 
-class CallAssign(Instruction):
-    def __init__(self, dest, target, args=None, is_vec=False):
-        self.dest, self.target, self.args, self.is_vec = (
-            dest,
-            target,
-            args or [],
-            is_vec,
-        )
-        self.description = (
-            f"let {dest} = {target}({', '.join(self.args)});"
-            if dest
-            else f"{target}({', '.join(self.args)});"
-        )
-
-    def execute(self, mem, prog):
-        arg_data = [
-            (
-                mem.mem[mem.get_addr(l)].value,
-                mem.mem[mem.get_addr(l)].typ,
-                mem.mem[mem.get_addr(l)].is_pointer,
-            )
-            for l in self.args  # noqa: E741
-        ]
-        func = prog.functions[self.target]
-        size = calc_frame_size(func)
-        mem.push_frame(self.target, size, ret_dest=self.dest, ret_is_vec=self.is_vec)
-        for name, (val, typ, is_ptr) in zip(func.params, arg_data):
-            mem.alloc_stack_var(name, typ, val, is_pointer=is_ptr)
-
-
 class CallFunction(Instruction):
-    def __init__(self, target, args=None, display=""):
-        self.target, self.args = target, args or []
-        self.description = display or f"{target}({', '.join(self.args)});"
+    """
+    Unified function call instruction.
+
+    Args can be:
+    - str: simple scalar variable
+    - tuple (name, "Vec"): vector variable (3 slots)
+    - tuple (name, size): array variable (size slots)
+
+    Return can be:
+    - None: no return value
+    - str: scalar return variable
+    - tuple (name, "Vec"): vector return variable
+    - tuple (name, size): array return variable
+    """
+
+    def __init__(self, target, args=None, ret=None, display=""):
+        self.target = target
+        self.args = args or []
+        self.ret = ret
+
+        # Build description
+        if display:
+            self.description = display
+        else:
+            arg_str = ", ".join(self._arg_name(a) for a in self.args)
+            if ret:
+                ret_name = self._arg_name(ret)
+                self.description = f"let {ret_name} = {target}({arg_str});"
+            else:
+                self.description = f"{target}({arg_str});"
+
+    @staticmethod
+    def _arg_name(arg):
+        """Extract display name from arg specification."""
+        if isinstance(arg, tuple):
+            return arg[0]
+        return arg
+
+    def param_size(self):
+        """Calculate total stack slots needed for parameters."""
+        total = 0
+        for arg in self.args:
+            if isinstance(arg, tuple):
+                _, spec = arg
+                if spec == "Vec":
+                    total += 3
+                else:
+                    total += spec  # array size
+            else:
+                total += 1  # scalar
+        return total
+
+    def ret_size(self):
+        """Calculate stack slots needed for return value."""
+        if not self.ret:
+            return 0
+        if isinstance(self.ret, tuple):
+            _, spec = self.ret
+            if spec == "Vec":
+                return 3
+            else:
+                return spec  # array size
+        return 1  # scalar
 
     def execute(self, mem, prog):
+        # 1. Collect argument data
         arg_data = []
-        for label in self.args:
-            try:
-                # 1. Try to fetch standard variable metadata
-                addr = mem.get_addr(label)
+        for arg in self.args:
+            if isinstance(arg, tuple):
+                name, spec = arg
+                if spec == "Vec":
+                    # Vector argument
+                    p_addr = mem.get_addr(f"{name}.ptr")
+                    l_addr = mem.get_addr(f"{name}.len")
+                    c_addr = mem.get_addr(f"{name}.cap")
+                    arg_data.append(
+                        {
+                            "kind": "vec",
+                            "ptr": mem.mem[p_addr].value,
+                            "len": mem.mem[l_addr].value,
+                            "cap": mem.mem[c_addr].value,
+                        }
+                    )
+                else:
+                    # Array argument
+                    base_addr = mem.get_addr(name)
+                    values = [mem.mem[base_addr + i].value for i in range(spec)]
+                    arg_data.append(
+                        {
+                            "kind": "array",
+                            "values": values,
+                            "size": spec,
+                        }
+                    )
+            else:
+                # Scalar argument
+                addr = mem.get_addr(arg)
                 cell = mem.mem[addr]
                 arg_data.append(
                     {
@@ -218,44 +275,47 @@ class CallFunction(Instruction):
                         "is_ptr": cell.is_pointer,
                     }
                 )
-            except (ValueError, KeyError):
-                # 2. Fallback: Check if it's a Vector (check for .ptr suffix)
-                try:
-                    p_addr = mem.get_addr(f"{label}.ptr")
-                    l_addr = mem.get_addr(f"{label}.len")
-                    c_addr = mem.get_addr(f"{label}.cap")
 
-                    arg_data.append(
-                        {
-                            "kind": "vec",
-                            "ptr": mem.mem[p_addr].value,
-                            "len": mem.mem[l_addr].value,
-                            "cap": mem.mem[c_addr].value,
-                        }
-                    )
-                except (ValueError, KeyError):
-                    raise ValueError(
-                        f"Function call failed: Argument '{label}' not found on stack."
-                    )
-
+        # 2. Push new frame with return info
         func = prog.functions[self.target]
         size = calc_frame_size(func)
-        mem.push_frame(self.target, size)
 
-        # 3. Allocation in the NEW frame
+        ret_dest = None
+        ret_type = None
+        ret_size = 1
+        if self.ret:
+            if isinstance(self.ret, tuple):
+                ret_dest = self.ret[0]
+                if self.ret[1] == "Vec":
+                    ret_type = "vec"
+                    ret_size = 3
+                else:
+                    ret_type = "array"
+                    ret_size = self.ret[1]
+            else:
+                ret_dest = self.ret
+                ret_type = "scalar"
+
+        mem.push_frame(
+            self.target, size, ret_dest=ret_dest, ret_type=ret_type, ret_size=ret_size
+        )
+
+        # 3. Allocate parameters in the new frame
         for param_name, data in zip(func.params, arg_data):
             if data["kind"] == "scalar":
                 mem.alloc_stack_var(
                     param_name, data["typ"], data["val"], is_pointer=data["is_ptr"]
                 )
             elif data["kind"] == "vec":
-                # Reconstruct the Vec metadata in the new frame
-                # This mimics Rust's move/copy of the Vec struct (ptr, len, cap)
                 mem.alloc_stack_var(
                     f"{param_name}.ptr", "usize", data["ptr"], is_pointer=True
                 )
                 mem.alloc_stack_var(f"{param_name}.len", "usize", data["len"])
                 mem.alloc_stack_var(f"{param_name}.cap", "usize", data["cap"])
+            elif data["kind"] == "array":
+                mem.alloc_stack_var(
+                    param_name, "array", data["values"], span=data["size"]
+                )
 
 
 class ReturnIfEquals(Instruction):
@@ -395,8 +455,11 @@ class ReturnFunction(Instruction):
     def execute(self, mem, prog):
         curr_frame = mem.call_stack[-1]
         dest = curr_frame.ret_dest
+        ret_type = curr_frame.ret_type
+
         if self.ret_var and dest:
-            if curr_frame.ret_is_vec:
+            if ret_type == "vec":
+                # Vector return
                 p = mem.mem[mem.get_addr(f"{self.ret_var}.ptr")].value
                 l = mem.mem[mem.get_addr(f"{self.ret_var}.len")].value  # noqa: E741
                 c = mem.mem[mem.get_addr(f"{self.ret_var}.cap")].value
@@ -404,7 +467,16 @@ class ReturnFunction(Instruction):
                 mem.alloc_stack_var(f"{dest}.ptr", "ptr", p, is_pointer=True)
                 mem.alloc_stack_var(f"{dest}.len", "usize", l)
                 mem.alloc_stack_var(f"{dest}.cap", "usize", c)
+            elif ret_type == "array":
+                # Array return
+                base_addr = mem.get_addr(self.ret_var)
+                values = [
+                    mem.mem[base_addr + i].value for i in range(curr_frame.ret_size)
+                ]
+                mem.pop_frame()
+                mem.alloc_stack_var(dest, "array", values, span=curr_frame.ret_size)
             else:
+                # Scalar return
                 addr = mem.get_addr(self.ret_var)
                 val, typ, is_ptr = (
                     mem.mem[addr].value,
@@ -451,6 +523,48 @@ class StaticArray(Instruction):
 
     def execute(self, mem, prog):
         mem.alloc_stack_var(self.label, "array", self.vals, span=len(self.vals))
+
+
+class DerefSetArray(Instruction):
+    def __init__(self, label, idx, val, stars=""):
+        self.label, self.idx, self.val, self.nb_deref = label, idx, val, len(stars)
+        if self.nb_deref > 0:
+            self.description = f"({stars}{label})[{idx}] = {val}"
+        else:
+            self.description = f"{label}[{idx}] = {val}"
+
+    def execute(self, mem, prog):
+        nb_deref = self.nb_deref
+        addr = mem.get_addr(self.label)
+        while nb_deref > 0:
+            cell = mem.mem[addr]
+            addr = cell.value
+            nb_deref -= 1
+
+        mem.mem[addr + self.idx].value = self.val
+
+
+class DerefSetVec(Instruction):
+    def __init__(self, label, idx, val, stars=""):
+        self.label, self.idx, self.val, self.nb_deref = label, idx, val, len(stars)
+        if self.nb_deref > 0:
+            self.description = f"({stars}{label})[{idx}] = {val}"
+        else:
+            self.description = f"{label}[{idx}] = {val}"
+
+    def execute(self, mem, prog):
+        nb_deref = self.nb_deref
+        if nb_deref == 0:
+            addr = mem.get_addr(self.label + ".ptr")
+            addr = mem.mem[addr].value
+        else:
+            addr = mem.get_addr(self.label)
+            while nb_deref > 0:
+                addr = mem.mem[addr].value
+                nb_deref -= 1
+            addr = mem.mem[addr + 2].value
+
+        mem.mem[addr + self.idx].value = self.val
 
 
 class VecNew(Instruction):
@@ -565,13 +679,13 @@ def calc_frame_size(func):
         for i in func.body:
             if isinstance(
                 i,
-                (StackVar, StackVarFromVar, HeapAlloc, Ref, Clone, Add, Sub, Mul, Div),
+                (LetVar, StackVarFromVar, HeapAlloc, Ref, Clone, Add, Sub, Mul, Div),
             ):
                 size += 1
             elif isinstance(i, StaticArray):
                 size += len(i.vals)
             elif isinstance(i, VecNew):
                 size += 3
-            elif isinstance(i, CallAssign) and i.dest:
-                size += 3 if i.is_vec else 1
+            elif isinstance(i, CallFunction):
+                size += i.ret_size()
     return max(size, 1)

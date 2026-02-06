@@ -2,18 +2,20 @@ from .base import Instruction
 from .instructions import (
     Add,
     AddAssign,
-    Assign,
     AssignDeref,
-    CallAssign,
+    AssignVar,
     CallFunction,
     Clone,
     Decrement,
+    DerefSetArray,
+    DerefSetVec,
     Div,
     Free,
     FreeVec,
     HeapAlloc,
     IfElse,
     Increment,
+    LetVar,
     Mul,
     Nop,
     Print,
@@ -22,7 +24,6 @@ from .instructions import (
     ReturnFunction,
     ReturnIfEquals,
     Set,
-    StackVar,
     StackVarFromVar,
     StaticArray,
     Sub,
@@ -33,7 +34,6 @@ from .instructions import (
 )
 
 __all__ = [
-    "CallAssign",
     "Clone",
     "AssignDeref",
     "Free",
@@ -45,8 +45,9 @@ __all__ = [
     "CallFunction",
     "HeapAlloc",
     "Ref",
-    "StackVar",
+    "LetVar",
     "StaticArray",
+    "DerefSetVec",
     "VecNew",
     "VecPush",
     "ReturnIfEquals",
@@ -60,9 +61,10 @@ __all__ = [
     "Increment",
     "Print",
     "IfElse",
+    "DerefSetArray",
     "StackVarFromVar",
     "Random",
-    "Assign",
+    "AssignVar",
 ]
 
 

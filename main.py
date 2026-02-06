@@ -12,25 +12,26 @@ from visualizer.launcher import ProgramLauncher
 from visualizer.ops import (
     Add,
     AssignDeref,
-    CallAssign,
     CallFunction,
     Clone,
     Decrement,
     Free,
     FreeVec,
     HeapAlloc,
+    LetVar,
     Nop,
     Ref,
     ReturnFunction,
     ReturnIfEquals,
-    StackVar,
     StaticArray,
     VecNew,
     VecPush,
 )
 from visualizer.ops.instructions import (
     AddAssign,
-    Assign,
+    AssignVar,
+    DerefSetArray,
+    DerefSetVec,
     IfElse,
     Increment,
     Print,
@@ -50,9 +51,9 @@ def p0():
                 body=[
                     Nop("x is set to be at an offset of 2 "),
                     Nop("from the (reversed) top of stack"),
-                    StackVar("x", "i32", 5),
+                    LetVar("x", "i32", 5),
                     Nop("y is at an offset of 1"),
-                    StackVar("y", "i32", -12),
+                    LetVar("y", "i32", -12),
                     Nop("Type of a i32 and a is at an offset of 0"),
                     Add("a", "x", "y"),
                     Print("a = {a}"),
@@ -70,7 +71,7 @@ def p1():
                 body=[
                     Nop("Simple Box"),
                     HeapAlloc("p", 100),
-                    StackVar("x", "i32", 5),
+                    LetVar("x", "i32", 5),
                     Free("p"),
                     ReturnFunction(),
                 ]
@@ -99,12 +100,12 @@ def p3():
     return Program(
         {
             "hello_world": FunctionDef(
-                body=[StackVar("a", "i32", 5), Print("Hello, world!"), ReturnFunction()]
+                body=[LetVar("a", "i32", 5), Print("Hello, world!"), ReturnFunction()]
             ),
             "main": FunctionDef(
                 body=[
                     Nop("Function Calls"),
-                    StackVar("x", "i32", 1),
+                    LetVar("x", "i32", 1),
                     CallFunction("hello_world"),
                     ReturnFunction(),
                 ]
@@ -137,9 +138,9 @@ def p5():
             "main": FunctionDef(
                 body=[
                     Nop("Static Array"),
-                    StackVar("before", "i32", 7),
+                    LetVar("before", "i32", 7),
                     StaticArray("arr", [10, 20, 30]),
-                    StackVar("after", "i32", 9),
+                    LetVar("after", "i32", 9),
                     ReturnFunction(),
                 ]
             )
@@ -153,7 +154,7 @@ def p6():
             "main": FunctionDef(
                 body=[
                     Nop("References"),
-                    StackVar("x", "i32", 42),
+                    LetVar("x", "i32", 42),
                     Ref("ptr", "x"),
                     AssignDeref("*", "ptr", 99),
                     ReturnFunction(),
@@ -169,8 +170,8 @@ def p7():
             "main": FunctionDef(
                 body=[
                     Nop("Setup parameters"),
-                    StackVar("x", "i32", 10),
-                    StackVar("y", "i32", 20),
+                    LetVar("x", "i32", 10),
+                    LetVar("y", "i32", 20),
                     Ref("y_ref", "y"),
                     CallFunction("process", ["x", "y_ref"]),
                     ReturnFunction(),
@@ -194,20 +195,20 @@ def p8():
             "main": FunctionDef(
                 body=[
                     Nop("Nested Calls"),
-                    StackVar("a", "i32", 1),
+                    LetVar("a", "i32", 1),
                     CallFunction("level1"),
-                    StackVar("b", "i32", 2),
+                    LetVar("b", "i32", 2),
                     ReturnFunction(),
                 ]
             ),
             "level1": FunctionDef(
                 body=[
-                    StackVar("l1", "i32", 10),
+                    LetVar("l1", "i32", 10),
                     CallFunction("level2"),
                     ReturnFunction(),
                 ]
             ),
-            "level2": FunctionDef(body=[StackVar("l2", "i32", 20), ReturnFunction()]),
+            "level2": FunctionDef(body=[LetVar("l2", "i32", 20), ReturnFunction()]),
         }
     )
 
@@ -218,7 +219,7 @@ def p9():
             "main": FunctionDef(
                 body=[
                     Nop("Recursive Stack"),
-                    StackVar("s", "i32", 5),
+                    LetVar("s", "i32", 5),
                     CallFunction("rec", ["s"]),
                     ReturnFunction(),
                 ]
@@ -243,9 +244,9 @@ def p10():
             "main": FunctionDef(
                 body=[
                     Nop("Shadowing & Pointers"),
-                    StackVar("x", "i32", 1),
+                    LetVar("x", "i32", 1),
                     Ref("p1", "x"),
-                    StackVar("x", "i32", 2),
+                    LetVar("x", "i32", 2),
                     Ref("p2", "x"),
                     ReturnFunction(),
                 ]
@@ -278,7 +279,7 @@ def p12():
             "main": FunctionDef(
                 body=[
                     Nop("Deep Reference chain"),
-                    StackVar("a", "i32", 10),
+                    LetVar("a", "i32", 10),
                     Ref("ra", "a"),
                     Ref("rra", "ra"),
                     Ref("rrra", "rra"),
@@ -298,14 +299,14 @@ def p13():
             "main": FunctionDef(
                 body=[
                     Nop("Recursive Stack"),
-                    StackVar("s", "i32", 2),
+                    LetVar("s", "i32", 2),
                     CallFunction("rec"),
                     ReturnFunction(),
                 ]
             ),
             "rec": FunctionDef(
                 body=[
-                    StackVar("s", "i32", 2),
+                    LetVar("s", "i32", 2),
                     CallFunction("rec"),  # Recursive Step
                     ReturnFunction(),
                 ],
@@ -319,15 +320,13 @@ def p14():
         {
             "main": FunctionDef(
                 body=[
-                    CallAssign("x", "get_val"),
-                    CallAssign("v", "get_vec", is_vec=True),
+                    CallFunction("get_val", ret="x"),
+                    CallFunction("get_vec", ret="v"),
                     FreeVec("v"),
                     ReturnFunction(),
                 ]
             ),
-            "get_val": FunctionDef(
-                body=[StackVar("a", "i32", 99), ReturnFunction("a")]
-            ),
+            "get_val": FunctionDef(body=[LetVar("a", "i32", 99), ReturnFunction("a")]),
             "get_vec": FunctionDef(
                 body=[VecNew("my_v", [7, 8], cap=2), ReturnFunction("my_v")]
             ),
@@ -349,7 +348,7 @@ def p15():
                     CallFunction(
                         "heap_alloc",
                     ),
-                    StackVar("a", "i32", 99),
+                    LetVar("a", "i32", 99),
                     ReturnFunction(),
                 ]
             ),
@@ -368,7 +367,7 @@ def p16():
                     CallFunction(
                         "heap_alloc",
                     ),
-                    StackVar("a", "i32", 99),
+                    LetVar("a", "i32", 99),
                     ReturnFunction(),
                 ]
             ),
@@ -390,7 +389,7 @@ def p17():
                 body=[
                     Nop("Setup parameters"),
                     VecNew("v", [1, 2], cap=2),
-                    CallFunction("process", ["v"]),
+                    CallFunction("process", [("v", "Vec")]),
                     Nop("In rust, v can't be used here, after process..."),
                     ReturnFunction(),
                 ]
@@ -440,8 +439,8 @@ def p19():
             "main": FunctionDef(
                 body=[
                     Nop("Setup parameters"),
-                    StackVar("x", "i32", 10),
-                    StackVar("y", "i32", 20),
+                    LetVar("x", "i32", 10),
+                    LetVar("y", "i32", 20),
                     Nop("Calling `process` with params x & y"),
                     CallFunction("process", ["x", "y"]),
                     Print("x={x}, y={y}"),
@@ -485,9 +484,9 @@ def p21():
         {
             "main": FunctionDef(
                 body=[
-                    StackVar("n", "i32", 4),
-                    CallAssign("f", "fibonacci", ["n"]),
-                    Print("Fibo(4)={n}"),
+                    LetVar("n", "i32", 4),
+                    CallFunction("fibonacci", args=["n"], ret="f"),
+                    Print("Fibo({n})={f}"),
                     ReturnFunction(),
                 ]
             ),
@@ -495,7 +494,7 @@ def p21():
                 size=4,
                 params=["n"],
                 body=[
-                    StackVar("res", "i32", 0),
+                    LetVar("res", "i32", 0),
                     IfElse(
                         "n",
                         1,
@@ -507,9 +506,9 @@ def p21():
                                 [Set("res", 1)],
                                 [
                                     Decrement("n"),
-                                    CallAssign("f1", "fibonacci", ["n"]),
+                                    CallFunction("fibonacci", args=["n"], ret="f1"),
                                     Decrement("n"),
-                                    CallAssign("f2", "fibonacci", ["n"]),
+                                    CallFunction("fibonacci", args=["n"], ret="f2"),
                                     AddAssign("res", "f1", "f2"),
                                 ],
                             )
@@ -544,7 +543,7 @@ def p23():
             "main": FunctionDef(
                 body=[
                     HeapAlloc("p1", 42),
-                    CallAssign("p2", "ma_func", ["p1"]),
+                    CallFunction("ma_func", args=["p1"], ret="p2"),
                     Free("p2"),
                     Nop("Drop p1; ?????"),
                     ReturnFunction(),
@@ -554,16 +553,63 @@ def p23():
                 size=4,
                 params=["p"],
                 body=[
-                    StackVar("res", "&i32"),
+                    LetVar("res", "&i32"),
                     Random("r", 0, 1),
                     IfElse(
                         "r",
                         0,
-                        [Assign("res", "p")],
-                        [HeapAlloc("p2", "88"), Assign("res", "p2")],
+                        [AssignVar("res", "p")],
+                        [HeapAlloc("p2", "88"), AssignVar("res", "p2")],
                     ),
                     ReturnFunction("res"),
                 ],
+            ),
+        }
+    )
+
+
+def p24():
+    return Program(
+        {
+            "main": FunctionDef(
+                body=[
+                    StaticArray("arr", [1, 2]),
+                    CallFunction("func_copy", args=[("arr", 2)]),
+                    Ref("p", "arr"),
+                    CallFunction("func_ref", args=["p"]),
+                    ReturnFunction(),
+                ]
+            ),
+            "func_copy": FunctionDef(
+                size=2,
+                params=["arr"],
+                body=[DerefSetArray("arr", 0, 42), ReturnFunction()],
+            ),
+            "func_ref": FunctionDef(
+                params=["arr"],
+                body=[DerefSetArray("arr", 0, 42, stars="*"), ReturnFunction()],
+            ),
+        }
+    )
+
+
+def p25():
+    return Program(
+        {
+            "main": FunctionDef(
+                body=[
+                    LetVar("bank", "i32", 25000),
+                    CallFunction("tampering"),
+                    ReturnFunction(),
+                ]
+            ),
+            "tampering": FunctionDef(
+                body=[
+                    LetVar("x", "i32", 42),
+                    StaticArray("arr", [1, 2, 3, 4]),
+                    DerefSetArray("arr", 5, -99),
+                    ReturnFunction(),
+                ]
             ),
         }
     )
@@ -581,7 +627,7 @@ if __name__ == "__main__":
         "Function with params": (p7, FRAME_PALETTE[2]),  # functions
         "Nested calls": (p8, FRAME_PALETTE[2]),  # functions
         "Recursive stack": (p9, FRAME_PALETTE[2]),  # functions
-        "Shadowing": (p10, FRAME_PALETTE[2]),  # functions
+        "Shadowing": (p10, FRAME_PALETTE[0]),  # stack
         "Heap objects": (p11, FRAME_PALETTE[1]),  # heap
         "Many references": (p12, FRAME_PALETTE[0]),  # stack
         "Stack overflow": (p13, FRAME_PALETTE[2]),  # functions
@@ -595,6 +641,8 @@ if __name__ == "__main__":
         "Fibonacci": (p21, FRAME_PALETTE[3]),  # advanced
         "Double free": (p22, FRAME_PALETTE[1]),
         "Double free 2": (p23, FRAME_PALETTE[1]),
+        "Reference/copy array": (p24, FRAME_PALETTE[0]),
+        "Memory tampering": (p25, FRAME_PALETTE[0]),
     }
 
     ProgramLauncher(PROGS)
