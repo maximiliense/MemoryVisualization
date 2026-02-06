@@ -30,10 +30,13 @@ from visualizer.ops import (
 )
 from visualizer.ops.instructions import (
     AddAssign,
+    Assign,
     IfElse,
     Increment,
     Print,
+    Random,
     Set,
+    StackVarFromVar,
     VecPushDeref,
 )
 from visualizer.program import FunctionDef, Program
@@ -519,6 +522,53 @@ def p21():
     )
 
 
+def p22():
+    return Program(
+        {
+            "main": FunctionDef(
+                body=[
+                    HeapAlloc("p1", 42),
+                    StackVarFromVar("p2", "p1"),
+                    Free("p2"),
+                    Nop("Drop p1; ?????"),
+                    ReturnFunction(),
+                ]
+            )
+        }
+    )
+
+
+def p23():
+    return Program(
+        {
+            "main": FunctionDef(
+                body=[
+                    HeapAlloc("p1", 42),
+                    CallAssign("p2", "ma_func", ["p1"]),
+                    Free("p2"),
+                    Nop("Drop p1; ?????"),
+                    ReturnFunction(),
+                ]
+            ),
+            "ma_func": FunctionDef(
+                size=4,
+                params=["p"],
+                body=[
+                    StackVar("res", "&i32"),
+                    Random("r", 0, 1),
+                    IfElse(
+                        "r",
+                        0,
+                        [Assign("res", "p")],
+                        [HeapAlloc("p2", "88"), Assign("res", "p2")],
+                    ),
+                    ReturnFunction("res"),
+                ],
+            ),
+        }
+    )
+
+
 if __name__ == "__main__":
     PROGS = {
         "Stack variables": (p0, FRAME_PALETTE[0]),  # stack
@@ -542,7 +592,9 @@ if __name__ == "__main__":
         "Function vec by ref": (p18, FRAME_PALETTE[1]),  # heap
         "Basic func & params": (p19, FRAME_PALETTE[2]),  # function
         "Complex realloc": (p20, FRAME_PALETTE[1]),  # heap
-        "Fibonacci": (p21, FRAME_PALETTE[3]),
+        "Fibonacci": (p21, FRAME_PALETTE[3]),  # advanced
+        "Double free": (p22, FRAME_PALETTE[1]),
+        "Double free 2": (p23, FRAME_PALETTE[1]),
     }
 
     ProgramLauncher(PROGS)

@@ -20,6 +20,18 @@ Once an illustration is selected, the visualizer opens a window showing the live
 
 ![](figs/functions.png)
 
+Here is a draft for your disclaimer. It balances technical honesty with the fact that this is a pedagogical tool.
+
+---
+
+## ⚠️ Implementation Disclaimer: Educational Simplification
+
+This project is designed as a **conceptual visualizer** to help learners understand the relationship between source code, the stack, and the heap. To maintain clarity, several low-level architectural complexities have been abstracted away:
+
+* **Stack Contents:** In a real-world environment (like x86-64 or ARM), the stack contains much more than just local variables. It includes **return addresses** (saved Instruction Pointers), **frame pointers** (EBP/RBP), and **padding** for memory alignment.
+* **Register Usage:** Modern compilers make heavy use of **CPU Registers** (e.g., `rax`, `rbx`) to pass arguments and perform arithmetic. In this visualizer, many operations are shown as direct memory manipulations for better visibility, whereas a real CPU would perform these in registers.
+* ...
+
 ## 🚀 Getting Started
 
 This project uses [uv](https://github.com/astral-sh/uv) for fast, reliable Python package and dependency management.

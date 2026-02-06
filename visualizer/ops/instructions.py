@@ -64,10 +64,51 @@ class StackVar(Instruction):
             value,
             is_pointer,
         )
-        self.description = f"let {label}: {typ} = {value};"
+        if not typ.startswith("Option") and value is None:
+            self.description = f"let {label}: {typ};"
+        else:
+            self.description = f"let {label}: {typ} = {value};"
 
     def execute(self, mem, prog):
         mem.alloc_stack_var(self.label, self.typ, self.value, self.is_pointer)
+
+
+class Random(Instruction):
+    def __init__(self, label, min, max):
+        self.label, self.min, self.max = label, min, max
+        self.description = f"let {label} = rand_int({min}, {max});"
+
+    def execute(self, mem, prog):
+        import random
+
+        r = random.randint(self.min, self.max)
+        mem.alloc_stack_var(self.label, "i32", r, False)
+
+
+class StackVarFromVar(Instruction):
+    def __init__(self, label, var):
+        self.label, self.var = (label, var)
+        self.description = f"let {label} = {var};"
+
+    def execute(self, mem, prog):
+        t_addr = mem.get_addr(self.var)
+        var = mem.mem[t_addr]
+        mem.alloc_stack_var(self.label, var.typ, var.value, var.is_pointer)
+
+
+class Assign(Instruction):
+    def __init__(self, label, var):
+        self.label, self.var = (label, var)
+        self.description = f"{label} = {var};"
+
+    def execute(self, mem, prog):
+        t_addr = mem.get_addr(self.var)
+        v2 = mem.mem[t_addr]
+        t_addr = mem.get_addr(self.label)
+        v1 = mem.mem[t_addr]
+        v1.value = v2.value
+        v1.typ = v2.typ
+        v1.is_pointer = v2.is_pointer
 
 
 class Ref(Instruction):
@@ -522,7 +563,10 @@ def calc_frame_size(func):
     size = func.size
     if size == 0:
         for i in func.body:
-            if isinstance(i, (StackVar, HeapAlloc, Ref, Clone, Add, Sub, Mul, Div)):
+            if isinstance(
+                i,
+                (StackVar, StackVarFromVar, HeapAlloc, Ref, Clone, Add, Sub, Mul, Div),
+            ):
                 size += 1
             elif isinstance(i, StaticArray):
                 size += len(i.vals)

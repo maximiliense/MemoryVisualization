@@ -2,6 +2,7 @@ from .base import Instruction
 from .instructions import (
     Add,
     AddAssign,
+    Assign,
     AssignDeref,
     CallAssign,
     CallFunction,
@@ -16,11 +17,13 @@ from .instructions import (
     Mul,
     Nop,
     Print,
+    Random,
     Ref,
     ReturnFunction,
     ReturnIfEquals,
     Set,
     StackVar,
+    StackVarFromVar,
     StaticArray,
     Sub,
     VecNew,
@@ -57,6 +60,9 @@ __all__ = [
     "Increment",
     "Print",
     "IfElse",
+    "StackVarFromVar",
+    "Random",
+    "Assign",
 ]
 
 
