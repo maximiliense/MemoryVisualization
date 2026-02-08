@@ -1,0 +1,7 @@
+fn main() {
+    // Simple Box
+    let p = Box::new(100);
+    let x: i32 = 5;
+    drop(p);
+    return;
+}

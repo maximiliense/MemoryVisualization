@@ -1,0 +1,11 @@
+fn main() {
+    // setup vec
+    let v = vec![1, 2];
+    process(v);
+    return;
+}
+
+fn process(v: Vec<i32>) {
+    v.push(42);
+    return;
+}

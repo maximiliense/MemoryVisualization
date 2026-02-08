@@ -1,0 +1,13 @@
+fn main() {
+    // Simple variables
+    // x is set to be at an offset of 2
+    // from the (reversed) top of stack
+    let x: i32 = 5;
+    // y is at an offset of 1
+    let y: i32 = -12;
+    // a's type is infered to be i32
+    // and a is at an offset of 0
+    let a = x + y;
+    println!("a = {a}");
+    return;
+}

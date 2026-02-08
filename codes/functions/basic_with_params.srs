@@ -1,0 +1,16 @@
+fn main() {
+    // setup
+    let x: i32 = 10;
+    let y: i32 = 10;
+    // Calling process with x and y
+    process(x, y);
+    println!("x={x}, y={y}");
+    return;
+}
+
+fn process(x: i32, y: i32) {
+    // x and y are copies of their main's counter part
+    x += 1;
+    y += 1;
+    return;
+}

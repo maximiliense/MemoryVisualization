@@ -1,0 +1,9 @@
+fn main() {
+    // shadowing & pointers
+    let x: i32 = 1;
+    let p1 = &x;
+    let x: i32 = 2;
+    let p2 = &x;
+    *p1 = 42;
+    return;
+}

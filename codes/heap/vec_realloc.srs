@@ -1,0 +1,10 @@
+fn main() {
+    // Vec reallocation
+    let mut v = vec![10];
+    v.push(20);
+    let b = Box::new(100);
+    *b = 1000;
+    drop(v);
+    drop(b);
+    return;
+}

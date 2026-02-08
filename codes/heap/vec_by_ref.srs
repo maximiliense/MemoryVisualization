@@ -1,0 +1,15 @@
+fn main() {
+    // Setup Vec
+    let mut v = vec![1, 2];
+    let p = &v;
+    process(p);
+    drop(v);
+    return;
+}
+
+fn process(p: &Vec<_>) {
+    // p is a reference to the vec in the
+    // main's stackframe
+    (*p).push(42);
+    return;
+}

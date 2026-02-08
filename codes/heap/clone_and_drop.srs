@@ -1,0 +1,8 @@
+fn main() {
+    // Clone & drop
+    let v1 = Box::new(10);
+    let v2 = v1.clone();
+    drop(v1);
+    drop(v2);
+    return;
+}

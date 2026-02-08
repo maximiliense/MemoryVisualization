@@ -101,40 +101,52 @@ def draw_code_block(
 
             # Draw 'else' separator
             # Note: color is based on the 'if' line status
-            ax.text(
-                0.4,
-                y,
-                f"  {indent_str}}} else {{",
-                color=color,
-                family="monospace",
-                fontsize=10,
-                va="center",
-            )
-            y -= 0.22
+            if instr.else_body:
+                ax.text(
+                    0.4,
+                    y,
+                    f"  {indent_str}}} else {{",
+                    color=color,
+                    family="monospace",
+                    fontsize=10,
+                    va="center",
+                )
+                y -= 0.22
 
-            # Draw 'else' block
-            y = draw_code_block(
-                ax,
-                instr.else_body,
-                y,
-                pc,
-                fn_name,
-                is_active_fn,
-                indent + 1,
-                is_root=False,
-            )
+                # Draw 'else' block
+                y = draw_code_block(
+                    ax,
+                    instr.else_body,
+                    y,
+                    pc,
+                    fn_name,
+                    is_active_fn,
+                    indent + 1,
+                    is_root=False,
+                )
 
-            # Draw closing brace
-            ax.text(
-                0.4,
-                y,
-                f"  {indent_str}}}",
-                color=color,
-                family="monospace",
-                fontsize=10,
-                va="center",
-            )
-            y -= 0.22
+                # Draw closing brace
+                ax.text(
+                    0.4,
+                    y,
+                    f"  {indent_str}}}",
+                    color=color,
+                    family="monospace",
+                    fontsize=10,
+                    va="center",
+                )
+                y -= 0.22
+            else:
+                ax.text(
+                    0.4,
+                    y,
+                    f"  {indent_str}}}",
+                    color=color,
+                    family="monospace",
+                    fontsize=10,
+                    va="center",
+                )
+                y -= 0.22
 
     return y
 
@@ -165,7 +177,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
     )
 
     # --- CODE PANEL ---
-    cursor_y = 7.0
+    cursor_y = 7.5
     for fn_name, fdef in program.functions.items():
         is_active_fn = fn_name == pc.fn_name
         is_in_stack = any(f == fn_name for f, _, _ in pc.ret_stack)
@@ -179,7 +191,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
         ax.text(
             0.3,
             cursor_y - 0.2,
-            f"fn {fn_name}({', '.join(fdef.params)}) {{",
+            f"fn {fn_name}({', '.join([p for (p, _) in fdef.params])}) {{",
             color=BG,
             fontweight="bold",
             family="monospace",

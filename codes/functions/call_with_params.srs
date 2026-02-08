@@ -1,0 +1,15 @@
+fn main() {
+    // setup parameters
+    let y: i32 = 20;
+    let y_ref = &y;
+    process(y, y_ref);
+    return;
+}
+
+fn process(y, y_ref) {
+    // y is a copy
+    // y_ref points to main stackframe
+    *y_ref = 999;
+    y = 999;
+    return;
+}

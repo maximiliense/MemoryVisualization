@@ -1,0 +1,12 @@
+fn main() {
+    // Stack Overflow
+    let s: i32 = 2;
+    rec();
+    return;
+}
+
+fn rec() {
+    let s: i32 = 2;
+    rec();
+    return;
+}

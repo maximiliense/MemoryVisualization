@@ -44,7 +44,7 @@ class InteractiveRunner:
             body = self.program.functions[self.pc.fn_name].body
 
         # 2. Execute the instruction at the current PC
-        if self.pc.line_idx < len(body):
+        if body and self.pc.line_idx < len(body):
             instr = body[self.pc.line_idx]
             if isinstance(instr, ReturnIfEquals) and instr.test(self.mem, self.program):
                 instr = ReturnFunction()
@@ -93,7 +93,7 @@ class InteractiveRunner:
                 curr_body = self.program.functions[self.pc.fn_name].body
 
             # If we are past the end of the current block/function...
-            if self.pc.line_idx >= len(curr_body):
+            if curr_body is None or self.pc.line_idx >= len(curr_body):
                 if self.pc.block_stack:
                     # Pop the block and "teleport" to the resume line in the parent
                     _, resume_idx = self.pc.block_stack.pop()

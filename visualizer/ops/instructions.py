@@ -64,12 +64,14 @@ class LetVar(Instruction):
             value,
             is_pointer,
         )
+
         if not typ.startswith("Option") and value is None:
             self.description = f"let {label}: {typ};"
         else:
             self.description = f"let {label}: {typ} = {value};"
 
     def execute(self, mem, prog):
+        print(self.value)
         mem.alloc_stack_var(self.label, self.typ, self.value, self.is_pointer)
 
 
@@ -301,7 +303,7 @@ class CallFunction(Instruction):
         )
 
         # 3. Allocate parameters in the new frame
-        for param_name, data in zip(func.params, arg_data):
+        for (param_name, _), data in zip(func.params, arg_data):
             if data["kind"] == "scalar":
                 mem.alloc_stack_var(
                     param_name, data["typ"], data["val"], is_pointer=data["is_ptr"]
@@ -624,17 +626,24 @@ class VecPushDeref(Instruction):
 
 
 class IfElse(Instruction):
-    def __init__(self, var_name, value, then_body, else_body=None, display=""):
+    def __init__(
+        self, var_name, value, then_body, else_body=None, display="", equals=True
+    ):
         self.var_name = var_name
         self.value = value
         self.then_body = then_body
-        self.else_body = else_body or []
+        self.equals = equals
+        self.else_body = else_body or None
         # Display shown in the code panel
-        self.description = display or f"if {var_name} == {value} {{"
+        op = "==" if equals else "!="
+        self.description = display or f"if {var_name} {op} {value} {{"
 
     def execute(self, mem, prog):
         addr = mem.get_addr(self.var_name)
-        condition_met = mem.mem[addr].value == self.value
+        if self.equals:
+            condition_met = mem.mem[addr].value == self.value
+        else:
+            condition_met = mem.mem[addr].value != self.value
         return self.then_body if condition_met else self.else_body
 
 
@@ -674,18 +683,38 @@ def push_vec(p_addr, c_addr, l_addr, mem, val, name):
 
 
 def calc_frame_size(func):
+    # param's size
     size = func.size
-    if size == 0:
-        for i in func.body:
-            if isinstance(
-                i,
-                (LetVar, StackVarFromVar, HeapAlloc, Ref, Clone, Add, Sub, Mul, Div),
-            ):
-                size += 1
-            elif isinstance(i, StaticArray):
-                size += len(i.vals)
-            elif isinstance(i, VecNew):
-                size += 3
-            elif isinstance(i, CallFunction):
-                size += i.ret_size()
-    return max(size, 1)
+    return max(body_size(func.body) + size, 1)
+
+
+def body_size(body):
+    size = 0
+    for i in body:
+        if isinstance(
+            i,
+            (
+                LetVar,
+                StackVarFromVar,
+                Random,
+                HeapAlloc,
+                Ref,
+                Clone,
+                Add,
+                Sub,
+                Mul,
+                Div,
+            ),
+        ):
+            size += 1
+        elif isinstance(i, StaticArray):
+            size += len(i.vals)
+        elif isinstance(i, VecNew):
+            size += 3
+        elif isinstance(i, CallFunction):
+            size += i.ret_size()
+        elif isinstance(i, IfElse):
+            if_size = body_size(i.then_body)
+            else_size = body_size(i.else_body) if i.else_body else 0
+            size += max(if_size, else_size)
+    return size

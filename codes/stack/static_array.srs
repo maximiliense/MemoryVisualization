@@ -1,0 +1,7 @@
+fn main() {
+    // Static array
+    let before: i32 = 7;
+    let arr: [i32; 3] = [10, 20, 30];
+    let after: i32 = 9;
+    return;
+}

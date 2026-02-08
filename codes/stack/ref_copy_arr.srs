@@ -1,0 +1,17 @@
+fn main() {
+    let arr: [i32; 2] = [1, 2];
+    func_copy(arr);
+    let p = &arr;
+    func_ref(p);
+    return;
+}
+
+fn func_copy(arr: [i32; 2]) {
+    arr[0] = 42;
+    return;
+}
+
+fn func_ref(p: &[i32]) {
+    (*p)[0] = 42;
+    return;
+}

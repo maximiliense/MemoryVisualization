@@ -1,0 +1,19 @@
+fn main() {
+    let p1 = Box::new(42);
+    let p2 = ma_func(p1);
+    drop(p2);
+    // should we drop p1 ?
+    return;
+}
+
+fn ma_func(p: Box<i32>) {
+    let res: &i32;
+    let r = rand_int(0, 1);
+    if r == 0 {
+        res = p;
+    } else {
+        let p2 = Box::new(88);
+        res = p2;
+    }
+    return res;
+}

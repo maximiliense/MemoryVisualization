@@ -1,0 +1,10 @@
+fn main() {
+    // Vec realloc
+    let mut v = vec![10];
+    v.push(20);
+    v.push(30);
+    v.push(40);
+    let a: i32 = 10;
+    drop(v);
+    return;
+}

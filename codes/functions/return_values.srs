@@ -1,0 +1,22 @@
+fn main() {
+    let x = get_val();
+    let v: Vec<i32> = get_vec();
+    let a: [i32; 5] = get_arr();
+    drop(v);
+    return;
+}
+
+fn get_val() {
+    let a: i32 = 99;
+    return a;
+}
+
+fn get_vec() {
+    let mut my_vec = vec![7, 8];
+    return my_vec;
+}
+
+fn get_arr() {
+    let arr: [i32; 5] = [1, 2, 3, 4, 5];
+    return arr;
+}

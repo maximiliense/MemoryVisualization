@@ -1,0 +1,7 @@
+fn main() {
+    // References
+    let x: i32 = 42;
+    let ptr = &x;
+    *ptr = 99;
+    return;
+}

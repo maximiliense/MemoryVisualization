@@ -1,0 +1,12 @@
+fn hello_world() {
+    let x: i32 = 5;
+    println!("Hello, world!");
+    return;
+}
+
+fn main() {
+    // Function call
+    let x: i32 = 1;
+    hello_world();
+    return;
+}

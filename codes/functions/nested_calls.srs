@@ -1,0 +1,17 @@
+fn main() {
+    // Nested calls
+    let a: i32 = 1;
+    level1();
+    return;
+}
+
+fn level1() {
+    let l1: i32 = 10;
+    level2();
+    return;
+}
+
+fn level2() {
+    let l2: i32 = 20;
+    return;
+}

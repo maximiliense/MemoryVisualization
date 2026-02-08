@@ -1,0 +1,11 @@
+fn main() {
+    // Deep reference chain
+    let a: i32 = 10;
+    let ra = &a;
+    let rra = &ra;
+    let rrra = &rra;
+    let rrrra = &rrra;
+    let rrrrra = &rrrra;
+    *****rrrrra = 42;
+    return;
+}

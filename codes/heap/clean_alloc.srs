@@ -1,0 +1,12 @@
+fn main() {
+    let toto: i32 = 42;
+    heap_alloc();
+    heap_alloc();
+    return;
+}
+
+fn heap_alloc() {
+    let my_vec = vec![7, 8, 9];
+    drop(my_vec);
+    return;
+}

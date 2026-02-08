@@ -1,0 +1,14 @@
+fn main() {
+    // Recursive calls
+    let n: i32 = 5;
+    rec(n);
+    return;
+}
+
+fn rec(n) {
+    if n != 0 {
+        n -= 1;
+        rec(n);
+    }
+    return;
+}
