@@ -236,7 +236,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: PC):
     )
     ax.text(
         6.8,
-        addr_y(HEAP_BOTTOM),
+        addr_y(HEAP_BOTTOM) - 0.3,
         "HEAP",
         color=HEAP_COL,
         fontsize=14,

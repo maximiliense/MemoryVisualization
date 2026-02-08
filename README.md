@@ -73,7 +73,101 @@ uv run python main.py
 
 ## 📝 Writing Your Own Programs
 
-You can define custom scenarios by creating a `Program` object. It uses a custom AST (Abstract Syntax Tree) style:
+You can define custom scenarios in two ways:
+
+### Option 1: Using Rust-like Syntax (Recommended)
+
+The visualizer includes a compiler that parses Rust-like code into executable instructions. This is the most intuitive way to create memory visualizations.
+
+**Supported Syntax:**
+
+```rust
+fn main() {
+    // Variable declarations
+    let x: i32 = 5;
+    let y: u32 = 10;
+    let z = 15;  // Type inferred as i32
+    
+    // Mutable vectors (heap-allocated, growable)
+    let mut v = vec![1, 2, 3];
+    v.push(4);  // Triggers reallocation if capacity exceeded
+    
+    // Fixed-size arrays (stack-allocated)
+    let arr: [i32; 5] = [10, 20, 30, 40, 50];
+    
+    // Heap allocation with Box
+    let p = Box::new(100);
+    
+    // References
+    let r = &x;
+    
+    // Dereferencing and assignment
+    *ptr = 42;
+    
+    // Arithmetic operations
+    let sum = x + y;
+    let diff = x - y;
+    let prod = x * y;
+    let quot = x / y;
+    
+    // Compound assignment
+    x += 1;
+    x -= 1;
+    
+    // Cloning
+    let p2 = p.clone();
+    
+    // Memory cleanup
+    drop(p);
+    
+    // Function calls
+    helper(x, y);
+    let result = compute(5);
+    
+    // Control flow
+    if x == 5 {
+        // then branch
+    } else {
+        // else branch
+    }
+    
+    // Return values
+    return x;
+}
+
+fn helper(a: i32, b: i32) {
+    // Function with parameters
+    let local = a + b;
+    return;
+}
+
+fn compute(n: i32) -> i32 {
+    let result = n * 2;
+    return result;
+}
+```
+
+**Using the Compiler:**
+
+```python
+from visualizer.compiler import compile_rust
+
+rust_code = """
+fn main() {
+    let x: i32 = 10;
+    let mut v = vec![1, 2];
+    v.push(3);  // Triggers heap reallocation!
+    return;
+}
+"""
+
+program = compile_rust(rust_code)
+# Now run the program with the visualizer
+```
+
+### Option 2: Using Python AST Style (Advanced)
+
+For more control, you can directly construct the Abstract Syntax Tree:
 
 ```python
 from visualizer.instructions import StackVar, VecNew, VecPush, ReturnFunction
@@ -90,7 +184,6 @@ def my_custom_prog():
             ]
         )
     })
-
 ```
 
 ---
