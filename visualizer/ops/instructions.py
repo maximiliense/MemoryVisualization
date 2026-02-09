@@ -71,7 +71,6 @@ class LetVar(Instruction):
             self.description = f"let {label}: {typ} = {value};"
 
     def execute(self, mem, prog):
-        print(self.value)
         mem.alloc_stack_var(self.label, self.typ, self.value, self.is_pointer)
 
 

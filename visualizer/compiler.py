@@ -435,67 +435,6 @@ class RustCompiler:
                 return Random(str(ret), *new_args)
             return CallFunction(func_name, args=new_args, ret=ret)
 
-        # # Function call (possibly with assignment)
-        # # Vec return: let v: Vec<i32> = func();
-        # func_call_match = re.match(
-        #     r"let\s+(\w+)\s*:\s*Vec<[^>]*>\s*=\s*(\w+)\(([^)]*)\)$", stmt
-        # )
-        # if func_call_match:
-        #     ret_var = func_call_match.group(1)
-        #     func_name = func_call_match.group(2)
-        #     args_str = func_call_match.group(3).strip()
-
-        #     args = []
-        #     if args_str:
-        #         for arg in args_str.split(","):
-        #             arg = arg.strip()
-        #             if arg in f_params:
-        #                 args.append((arg, f_params[arg]))
-        #             else:
-        #                 args.append(arg)
-
-        #         f_params[ret_var] = "Vec"
-        #         return CallFunction(func_name, args=args, ret=(ret_var, "Vec"))
-
-        #     f_params[ret_var] = "Vec"
-        #     return CallFunction(func_name, args=args, ret=(ret_var, "Vec"))
-
-        # # Array return: let arr: [i32; 5] = func();
-        # func_call_match = re.match(
-        #     r"let\s+(\w+)\s*:\s*\[[^\]]+;\s*(\d+)\]\s*=\s*(\w+)\(([^)]*)\)$", stmt
-        # )
-        # if func_call_match:
-        #     ret_var = func_call_match.group(1)
-        #     array_size = int(func_call_match.group(2))
-        #     func_name = func_call_match.group(3)
-        #     args_str = func_call_match.group(4).strip()
-        #     args = []
-        #     if args_str:
-        #         for arg in args_str.split(","):
-        #             arg = arg.strip()
-        #             if arg in f_params:
-        #                 args.append((arg, f_params[arg]))
-        #             else:
-        #                 args.append(arg)
-        #     return CallFunction(func_name, args=args, ret=(ret_var, array_size))
-
-        # func_call_match = re.match(r"(?:let\s+(\w+)\s*=\s*)?(\w+)\(([^)]*)\)$", stmt)
-        # if func_call_match:
-        #     ret_var = func_call_match.group(1)
-        #     func_name = func_call_match.group(2)
-        #     args_str = func_call_match.group(3).strip()
-        #     args = []
-        #     if args_str:
-        #         for arg in args_str.split(","):
-        #             arg = arg.strip()
-        #             if arg in f_params:
-        #                 args.append((arg, f_params[arg]))
-        #             else:
-        #                 args.append(arg)
-
-        #     return CallFunction(func_name, args=args, ret=ret_var)
-
-        #####################################@
         # Let statement
         if stmt.startswith("let "):
             return self._parse_let(stmt, f_params)
@@ -582,7 +521,6 @@ class RustCompiler:
             r"let\s+(\w+)(?:\s*:\s*([0-9a-zA-Z&_]+))?(?:\s*=\s*(.+))?$", stmt
         )
         if var_match:
-            print(stmt)
             var_name = var_match.group(1)
             var_type = var_match.group(2) or "i32"  # inferred default
             raw_value = var_match.group(3)
