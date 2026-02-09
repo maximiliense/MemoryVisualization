@@ -51,7 +51,7 @@ class InteractiveRunner:
             if isinstance(instr, IfElse):
                 chosen_block = instr.execute(self.mem, self.program)
                 # Save the NEXT line of the current scope to resume later
-                self.pc.block_stack.append((chosen_block, self.pc.line_idx + 1))
+                self.pc.block_stack.append((chosen_block, self.pc.line_idx + 1))  # type: ignore
                 self.pc.line_idx = 0
                 # We stop here so the renderer highlights the first line of the block
                 return

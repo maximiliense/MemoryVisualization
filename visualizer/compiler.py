@@ -422,7 +422,7 @@ class RustCompiler:
             new_args = []
             for a in args:
                 if isinstance(a, tuple):
-                    print(a)
+                    # print(a)
                     a = (self._parse_value(a[0]), a[1])
                 else:
                     a = self._parse_value(a)
@@ -431,7 +431,7 @@ class RustCompiler:
             # args = [arg[0] for arg in args]
             if func_name == "rand_int":
                 # builtin
-                print(str(ret), *new_args)
+                # print(str(ret), *new_args)
                 return Random(str(ret), *new_args)
             return CallFunction(func_name, args=new_args, ret=ret)
 
