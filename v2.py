@@ -205,7 +205,11 @@ fn main() {
 fn tampering() {
     let x: i32 = 42;
     let arr: [i32; 4] = [1, 2, 3, 4];
-    arr[5] = -99;
+    let arr_len: i32 = 6;
+    let idx: i32 = 5;
+    if idx < arr_len {
+        arr[idx] = -99;
+    }
     return;
 }
 
@@ -267,7 +271,7 @@ if __name__ == "__main__":
 
     # Compile the program
     print("\n1. Compiling program...")
-    program = compile_rust(EXAMPLE_PROGRAM14)
+    program = compile_rust(EXAMPLE_PROGRAM12)
     print(f"   Functions: {list(program.functions.keys())}")
 
     # Show the AST structure
