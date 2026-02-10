@@ -6,7 +6,7 @@ This includes methods like .push(), .clone(), etc.
 
 from typing import Union
 
-from .base import EvaluationResult, ExecutionContext, ExecutionStatus, Expression
+from .base import EvaluationResult, ExecutionStatus, Expression
 
 
 class MethodCall(Expression):
@@ -18,15 +18,6 @@ class MethodCall(Expression):
         self.obj = obj
         self.method = method
         self.args = args
-        self.ctx = ExecutionContext()
-
-    def reset_ctx(self):
-        self.ctx.reset()
-        if hasattr(self.obj, "reset_ctx"):
-            self.obj.reset_ctx()  # type: ignore
-        for arg in self.args:
-            if hasattr(arg, "reset_ctx"):
-                arg.reset_ctx()  # type: ignore
 
     def evaluate(
         self,
@@ -35,27 +26,28 @@ class MethodCall(Expression):
     ) -> Union[EvaluationResult, ExecutionStatus]:
         # Step 0: Evaluate object
         print("Evaluating method call")
-        if self.ctx.step == 0:
+        ctx = self.get_ctx(mem)
+        if ctx.step == 0:
             obj_result = self.obj.evaluate(mem, prog)
             if obj_result == ExecutionStatus.INCOMPLETE:
                 return ExecutionStatus.INCOMPLETE
-            self.ctx.store("obj_result", obj_result)
-            self.ctx.advance()
+            ctx.store("obj_result", obj_result)
+            ctx.advance()
 
         # Steps 1-N: Evaluate arguments
         num_args = len(self.args)
-        if self.ctx.step <= num_args:
-            arg_idx = self.ctx.step - 1
+        if ctx.step <= num_args:
+            arg_idx = ctx.step - 1
             arg_result = self.args[arg_idx].evaluate(mem, prog)
             if arg_result == ExecutionStatus.INCOMPLETE:
                 return ExecutionStatus.INCOMPLETE
-            self.ctx.store(f"arg_{arg_idx}", arg_result)
-            self.ctx.advance()
-            if self.ctx.step <= num_args:
+            ctx.store(f"arg_{arg_idx}", arg_result)
+            ctx.advance()
+            if ctx.step <= num_args:
                 return ExecutionStatus.INCOMPLETE
 
         # Step N+1: Execute method
-        obj_result = self.ctx.get("obj_result")
+        obj_result = ctx.get("obj_result")
 
         if self.method == "push":
             try:
@@ -66,17 +58,17 @@ class MethodCall(Expression):
                     res = self.obj.evaluate(mem, prog)
                     base_addr = res.get_scalar()  # type: ignore
 
-                self.ctx.store("base_addr", base_addr)
-                self.ctx.advance()
+                ctx.store("base_addr", base_addr)
+                ctx.advance()
             except Exception as e:
                 raise ValueError(f"Method call target must have an address: {e}")
-            return self._execute_push(mem, base_addr)  # type ignore
+            return self._execute_push(mem, base_addr, ctx)  # type ignore
         elif self.method == "clone":
             return self._execute_clone(mem, obj_result)
         else:
             raise NotImplementedError(f"Method {self.method} not implemented")
 
-    def _execute_push(self, mem, base_addr):
+    def _execute_push(self, mem, base_addr, ctx):
         """Execute Vec.push(value) using metadata addresses"""
 
         if base_addr is None:
@@ -101,7 +93,7 @@ class MethodCall(Expression):
             raise ValueError(f"Vec metadata at {base_addr} is corrupted")
 
         # 4. Get the argument to push
-        arg_result = self.ctx.get("arg_0")
+        arg_result = ctx.get("arg_0")
         val = arg_result.get_scalar()
 
         # 5. Handle Reallocation
@@ -165,35 +157,28 @@ class RandInt(Expression):
     def __init__(self, min_expr: Expression, max_expr: Expression):
         self.min_expr = min_expr
         self.max_expr = max_expr
-        self.ctx = ExecutionContext()
-
-    def reset_ctx(self):
-        self.ctx.reset()
-        if hasattr(self.min_expr, "reset_ctx"):
-            self.min_expr.reset_ctx()  # type: ignore
-        if hasattr(self.max_expr, "reset_ctx"):
-            self.max_expr.reset_ctx()  # type: ignore
 
     def evaluate(self, mem, prog) -> Union[EvaluationResult, ExecutionStatus]:
+        ctx = self.get_ctx(mem)
         # Step 0: Evaluate min
-        if self.ctx.step == 0:
+        if ctx.step == 0:
             min_result = self.min_expr.evaluate(mem, prog)
             if min_result == ExecutionStatus.INCOMPLETE:
                 return ExecutionStatus.INCOMPLETE
-            self.ctx.store("min_result", min_result)
-            self.ctx.advance()
+            ctx.store("min_result", min_result)
+            ctx.advance()
 
         # Step 1: Evaluate max
-        if self.ctx.step == 1:
+        if ctx.step == 1:
             max_result = self.max_expr.evaluate(mem, prog)
             if max_result == ExecutionStatus.INCOMPLETE:
                 return ExecutionStatus.INCOMPLETE
-            self.ctx.store("max_result", max_result)
-            self.ctx.advance()
+            ctx.store("max_result", max_result)
+            ctx.advance()
 
         # Step 2: Generate random number
-        min_result = self.ctx.get("min_result")
-        max_result = self.ctx.get("max_result")
+        min_result = ctx.get("min_result")
+        max_result = ctx.get("max_result")
 
         import random
 
@@ -210,22 +195,17 @@ class Println(Expression):
 
     def __init__(self, expr: Expression):
         self.expr = expr
-        self.ctx = ExecutionContext()
-
-    def reset_ctx(self):
-        self.ctx.reset()
-        if hasattr(self.expr, "reset_ctx"):
-            self.expr.reset_ctx()  # type: ignore
 
     def evaluate(self, mem, prog) -> Union[EvaluationResult, ExecutionStatus]:
-        if self.ctx.step == 0:
+        ctx = self.get_ctx(mem)
+        if ctx.step == 0:
             result = self.expr.evaluate(mem, prog)
             if result == ExecutionStatus.INCOMPLETE:
                 return ExecutionStatus.INCOMPLETE
-            self.ctx.store("result", result)
-            self.ctx.advance()
+            ctx.store("result", result)
+            ctx.advance()
 
-        result = self.ctx.get("result")
+        result = ctx.get("result")
         # In visualization, we don't actually print, just show the instruction
         # But we could add to a print log if needed
         return EvaluationResult(values=[None], typ="()")

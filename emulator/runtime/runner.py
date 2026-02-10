@@ -139,15 +139,16 @@ class ProgramRunner:
                 target_expr = instr.expr
 
             # If a FunctionCall is ready to fire, we "Jump" (PC MOVES)
-            if isinstance(target_expr, FunctionCall) and target_expr.ctx.get(
-                "ready_to_call"
-            ):
+            if isinstance(target_expr, FunctionCall) and target_expr.get_ctx(
+                self.mem
+            ).get("ready_to_call"):
                 func_name = target_expr.func_name
-                arg_values = target_expr.ctx.get("arg_values")
+                target_ctx = target_expr.get_ctx(self.mem)
+                arg_values = target_ctx.get("arg_values")
 
                 # 1. Clear flag and advance expr state to wait for return value
-                target_expr.ctx.store("ready_to_call", False)
-                target_expr.ctx.advance()
+                target_ctx.store("ready_to_call", False)
+                target_ctx.advance()
 
                 # 2. Save current PC to return stack
                 self.pc.ret_stack.append(
@@ -243,7 +244,7 @@ class ProgramRunner:
 
             # Control Flow: If/Else (PC MOVES)
             if isinstance(instr, IfElseBlock):
-                chosen_branch = instr.get_chosen_branch()
+                chosen_branch = instr.get_chosen_branch(self.mem)
                 if chosen_branch is not None:
                     # Enter branch
                     self.pc.block_stack.append((chosen_branch, self.pc.line_idx + 1))
@@ -256,10 +257,10 @@ class ProgramRunner:
 
             # Control Flow: While (PC MOVES)
             elif isinstance(instr, WhileLoop):
-                if instr.should_continue():
+                if instr.should_continue(self.mem):
                     self.pc.block_stack.append((instr.body, self.pc.line_idx))
                     self.pc.line_idx = 0
-                    instr.reset_ctx()
+                    instr.reset_ctx(self.mem)
                     return True
                 else:
                     self.pc.line_idx += 1
@@ -287,7 +288,7 @@ class ProgramRunner:
         """Handle return from function and inject result into the waiting instruction."""
         return_result = None
         if return_instr is not None:
-            return_result = return_instr.ctx.get("return_result")
+            return_result = return_instr.get_ctx(self.mem).get("return_result")
 
         # Pop function frame to get back to caller's frame
         # frame = self.mem.call_stack[-1]
@@ -313,8 +314,9 @@ class ProgramRunner:
                 and return_result
             ):
                 print(waiting_instr, "expr_result", return_result)
-                waiting_instr.ctx.store("expr_result", return_result)
-                waiting_instr.ctx.advance()
+                waiting_ctx = waiting_instr.get_ctx(self.mem)
+                waiting_ctx.store("expr_result", return_result)
+                waiting_ctx.advance()
         else:
             # Returned from main
             self.pc.line_idx = len(self.program.functions["main"].body)

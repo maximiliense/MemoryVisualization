@@ -7,7 +7,7 @@ They can be nested and evaluated recursively.
 
 from typing import Any, Union
 
-from .base import EvaluationResult, ExecutionContext, ExecutionStatus, Expression
+from .base import EvaluationResult, ExecutionStatus, Expression
 
 
 class Literal(Expression):
@@ -75,39 +75,31 @@ class ArrayAccess(Expression):
     def __init__(self, array: Expression, index: Expression):
         self.array = array
         self.index = index
-        self.ctx = ExecutionContext()
-
-    def reset_ctx(self):
-        self.ctx.reset()
-        if hasattr(self.array, "reset_ctx"):
-            self.array.reset_ctx()  # type: ignore
-        if hasattr(self.index, "reset_ctx"):
-            self.index.reset_ctx()  # type: ignore
 
     def evaluate(self, mem, prog) -> Union[EvaluationResult, ExecutionStatus]:
+        ctx = self.get_ctx(mem)
         # Step 0: Evaluate array expression
-        print("ArrayAccess", self.ctx.step)
-        if self.ctx.step == 0:
+        if ctx.step == 0:
             arr_result = self.array.evaluate(mem, prog)
             if arr_result == ExecutionStatus.INCOMPLETE:
                 return ExecutionStatus.INCOMPLETE
-            self.ctx.store("array_result", arr_result)
-            self.ctx.advance()
+            ctx.store("array_result", arr_result)
+            ctx.advance()
 
         # Step 1: Evaluate index expression
-        if self.ctx.step == 1:
+        if ctx.step == 1:
             idx_result = self.index.evaluate(
                 mem,
                 prog,
             )
             if idx_result == ExecutionStatus.INCOMPLETE:
                 return ExecutionStatus.INCOMPLETE
-            self.ctx.store("index_result", idx_result)
-            self.ctx.advance()
+            ctx.store("index_result", idx_result)
+            ctx.advance()
 
         # Step 2: Compute final result
-        arr_result = self.ctx.get("array_result")
-        idx_result = self.ctx.get("index_result")
+        arr_result = ctx.get("array_result")
+        idx_result = ctx.get("index_result")
 
         idx = idx_result.get_scalar()
 
@@ -131,38 +123,26 @@ class BinaryOp(Expression):
         self.left = left
         self.op = op
         self.right = right
-        self.ctx = ExecutionContext()
-
-    def reset_ctx(self):
-        self.ctx.reset()
-        if hasattr(self.left, "reset_ctx"):
-            self.left.reset_ctx()  # type: ignore
-        if hasattr(self.right, "reset_ctx"):
-            self.right.reset_ctx()  # type: ignore
 
     def evaluate(self, mem, prog) -> Union[EvaluationResult, ExecutionStatus]:
+        ctx = self.get_ctx(mem)
         # Step 0: Evaluate left operand
-        print(self.ctx.step, self.left, self.right, "jkfejskfsd")
-        if self.ctx.step == 0:
-            print("\t\t ********** jere")
+        if ctx.step == 0:
             left_result = self.left.evaluate(mem, prog)
             if left_result == ExecutionStatus.INCOMPLETE:
                 return ExecutionStatus.INCOMPLETE
-            self.ctx.store("left_result", left_result)
-            print(left_result)
-            self.ctx.advance()
-        print(self.ctx.step, self.left, self.right, "jkfejskfsd")
+            ctx.store("left_result", left_result)
+            ctx.advance()
         # Step 1: Evaluate right operand
-        if self.ctx.step == 1:
+        if ctx.step == 1:
             right_result = self.right.evaluate(mem, prog)
             if right_result == ExecutionStatus.INCOMPLETE:
                 return ExecutionStatus.INCOMPLETE
-            self.ctx.store("right_result", right_result)
-            print(right_result)
-            self.ctx.advance()
+            ctx.store("right_result", right_result)
+            ctx.advance()
         # Step 2: Perform operation
-        left_result = self.ctx.get("left_result")
-        right_result = self.ctx.get("right_result")
+        left_result = ctx.get("left_result")
+        right_result = ctx.get("right_result")
 
         left_val = left_result.get_scalar()
         right_val = right_result.get_scalar()
@@ -197,21 +177,15 @@ class FunctionCall(Expression):
     def __init__(self, func_name: str, args: list[Expression]):
         self.func_name = func_name
         self.args = args
-        self.ctx = ExecutionContext()
-
-    def reset_ctx(self):
-        self.ctx.reset()
-        for arg in self.args:
-            if hasattr(arg, "reset_ctx"):
-                arg.reset_ctx()  # type: ignore
 
     def evaluate(self, mem, prog) -> Union[EvaluationResult, ExecutionStatus]:
         import re
 
+        ctx = self.get_ctx(mem)
         # Step 0-N: Evaluate each argument
         num_args = len(self.args)
-        if self.ctx.step < num_args:
-            arg_idx = self.ctx.step
+        if ctx.step < num_args:
+            arg_idx = ctx.step
             arg_result = self.args[arg_idx].evaluate(mem, prog)
             if arg_result == ExecutionStatus.INCOMPLETE:
                 return ExecutionStatus.INCOMPLETE
@@ -251,30 +225,29 @@ class FunctionCall(Expression):
                         arg_result = EvaluationResult(
                             values=copied_values, typ=param_type, is_pointer=False
                         )
-            print("\tCALLING FUNCT", arg_result)
-            self.ctx.store(f"arg_{arg_idx}", arg_result)
-            self.ctx.advance()
+            ctx.store(f"arg_{arg_idx}", arg_result)
+            ctx.advance()
             return ExecutionStatus.INCOMPLETE
 
         # Step N: Make the actual function call
-        if self.ctx.step == num_args:
+        if ctx.step == num_args:
             # Collect all evaluated arguments
             arg_values = []
             for i in range(num_args):
-                arg_result = self.ctx.get(f"arg_{i}")
+                arg_result = ctx.get(f"arg_{i}")
                 arg_values.append(arg_result.values)
 
             # This will push a new frame and set up for function execution
             # The actual function execution happens outside this expression
             # We return INCOMPLETE and the runner will handle the call
-            self.ctx.store("ready_to_call", True)
-            self.ctx.store("arg_values", arg_values)
+            ctx.store("ready_to_call", True)
+            ctx.store("arg_values", arg_values)
             return ExecutionStatus.INCOMPLETE
 
         # Step N+1: Function has returned, get result
-        if self.ctx.step == num_args + 1:
+        if ctx.step == num_args + 1:
             # Result should be stored by the return instruction
-            result = self.ctx.get("function_result")
+            result = ctx.get("function_result")
             return result
 
         return ExecutionStatus.INCOMPLETE
@@ -290,12 +263,6 @@ class Dereference(Expression):
     def __init__(self, expr: Expression, levels: int = 1):
         self.expr = expr
         self.levels = levels
-        self.ctx = ExecutionContext()
-
-    def reset_ctx(self):
-        self.ctx.reset()
-        if hasattr(self.expr, "reset_ctx"):
-            self.expr.reset_ctx()  # type: ignore
 
     def get_target_address(self, mem, prog) -> int:
         """
@@ -330,14 +297,15 @@ class Dereference(Expression):
         R-Value logic: Fetches the actual value at the pointed-to location.
         Used in expressions like: let x = *p + 2;
         """
+        ctx = self.get_ctx(mem)
         # Step 0: Handle the async evaluation of the inner pointer expression
-        if self.ctx.step == 0:
+        if ctx.step == 0:
             target_addr = self.get_target_address(mem, prog)
-            self.ctx.store("target_addr", target_addr)
-            self.ctx.advance()
+            ctx.store("target_addr", target_addr)
+            ctx.advance()
 
         # Step 1: Read the value at that address
-        target_addr = self.ctx.get("target_addr")
+        target_addr = ctx.get("target_addr")
         if (
             not isinstance(target_addr, int)
             or target_addr < 0
@@ -380,31 +348,25 @@ class ArrayLiteral(Expression):
 
     def __init__(self, elements: list[Expression]):
         self.elements = elements
-        self.ctx = ExecutionContext()
-
-    def reset_ctx(self):
-        self.ctx.reset()
-        for arg in self.elements:
-            if hasattr(arg, "reset_ctx"):
-                arg.reset_ctx()  # type: ignore
 
     def evaluate(self, mem, prog) -> Union[EvaluationResult, ExecutionStatus]:
+        ctx = self.get_ctx(mem)
         num_elements = len(self.elements)
 
         # Evaluate each element
-        if self.ctx.step < num_elements:
-            elem_idx = self.ctx.step
+        if ctx.step < num_elements:
+            elem_idx = ctx.step
             elem_result = self.elements[elem_idx].evaluate(mem, prog)
             if elem_result == ExecutionStatus.INCOMPLETE:
                 return ExecutionStatus.INCOMPLETE
-            self.ctx.store(f"elem_{elem_idx}", elem_result)
-            self.ctx.advance()
+            ctx.store(f"elem_{elem_idx}", elem_result)
+            ctx.advance()
             return ExecutionStatus.INCOMPLETE
 
         # Collect all values
         values = []
         for i in range(num_elements):
-            elem_result = self.ctx.get(f"elem_{i}")
+            elem_result = ctx.get(f"elem_{i}")
             values.append(elem_result.get_scalar())
 
         return EvaluationResult(values=values, typ="i32")
@@ -419,31 +381,25 @@ class VecMacro(Expression):
 
     def __init__(self, elements: list[Expression]):
         self.elements = elements
-        self.ctx = ExecutionContext()
-
-    def reset_ctx(self):
-        self.ctx.reset()
-        for arg in self.elements:
-            if hasattr(arg, "reset_ctx"):
-                arg.reset_ctx()  # type: ignore
 
     def evaluate(self, mem, prog) -> Union[EvaluationResult, ExecutionStatus]:
+        ctx = self.get_ctx(mem)
         # First evaluate all elements like ArrayLiteral
         num_elements = len(self.elements)
 
-        if self.ctx.step < num_elements:
-            elem_idx = self.ctx.step
+        if ctx.step < num_elements:
+            elem_idx = ctx.step
             elem_result = self.elements[elem_idx].evaluate(mem, prog)
             if elem_result == ExecutionStatus.INCOMPLETE:
                 return ExecutionStatus.INCOMPLETE
-            self.ctx.store(f"elem_{elem_idx}", elem_result)
-            self.ctx.advance()
+            ctx.store(f"elem_{elem_idx}", elem_result)
+            ctx.advance()
             return ExecutionStatus.INCOMPLETE
 
         # Allocate heap space and return Vec metadata (ptr, len, cap)
         values = []
         for i in range(num_elements):
-            elem_result = self.ctx.get(f"elem_{i}")
+            elem_result = ctx.get(f"elem_{i}")
             values.append(elem_result.get_scalar())
 
         # The actual heap allocation will be done by the instruction using this expression
@@ -460,23 +416,18 @@ class BoxNew(Expression):
 
     def __init__(self, value: Expression):
         self.value = value
-        self.ctx = ExecutionContext()
-
-    def reset_ctx(self):
-        self.ctx.reset()
-        if hasattr(self.value, "reset_ctx"):
-            self.value.reset_ctx()  # type: ignore
 
     def evaluate(self, mem, prog) -> Union[EvaluationResult, ExecutionStatus]:
-        if self.ctx.step == 0:
+        ctx = self.get_ctx(mem)
+        if ctx.step == 0:
             value_result = self.value.evaluate(mem, prog)
             if value_result == ExecutionStatus.INCOMPLETE:
                 return ExecutionStatus.INCOMPLETE
-            self.ctx.store("value_result", value_result)
-            self.ctx.advance()
+            ctx.store("value_result", value_result)
+            ctx.advance()
 
         # Return the value to be boxed
-        value_result = self.ctx.get("value_result")
+        value_result = ctx.get("value_result")
         return EvaluationResult(
             values=value_result.values,
             typ="Box",

@@ -8,7 +8,6 @@ from typing import Optional
 
 from .base import (
     EvaluationResult,
-    ExecutionContext,
     ExecutionStatus,
     Instruction,
 )
@@ -44,16 +43,11 @@ class LetBinding(Instruction):
         self.var_name = var_name
         self.typ = typ
         self.expr = expr
-        self.ctx = ExecutionContext()
-
-        def reset_ctx(self):
-            self.ctx.reset()
-            if hasattr(self.expr, "reset_ctx"):
-                self.expr.reset_ctx()  # type: ignore
 
     def execute(self, mem, prog) -> ExecutionStatus:
+        ctx = self.get_ctx(mem)
         # Step 0: Evaluate the expression (if any)
-        if self.ctx.step == 0:
+        if ctx.step == 0:
             if self.expr is None:
                 # Uninitialized variable
                 mem.alloc_stack_var(self.var_name, self.typ or "i32", None)
@@ -63,11 +57,11 @@ class LetBinding(Instruction):
             if result == ExecutionStatus.INCOMPLETE:
                 return ExecutionStatus.INCOMPLETE
 
-            self.ctx.store("expr_result", result)
-            self.ctx.advance()
+            ctx.store("expr_result", result)
+            ctx.advance()
 
         # Step 1: Allocate and store
-        result: EvaluationResult = self.ctx.get("expr_result")
+        result: EvaluationResult = ctx.get("expr_result")
 
         # Special handling for different types
         print(result, result.typ)
@@ -136,27 +130,19 @@ class Assignment(Instruction):
     def __init__(self, lvalue: LValue, expr: Expression):
         self.lvalue = lvalue
         self.expr = expr
-        self.ctx = ExecutionContext()
-
-    def reset_ctx(self):
-        self.ctx.reset()
-        print("assignment reset")
-        if hasattr(self.expr, "reset_ctx"):
-            print("reset of ", self.expr)
-            self.expr.reset_ctx()  # type: ignore
 
     def execute(self, mem, prog) -> ExecutionStatus:
-        print("\t\tASSIGNMENT....")
+        ctx = self.get_ctx(mem)
         # Step 0: Evaluate the expression
-        if self.ctx.step == 0:
+        if ctx.step == 0:
             result = self.expr.evaluate(mem, prog)  # type: ignore
             if result == ExecutionStatus.INCOMPLETE:
                 return ExecutionStatus.INCOMPLETE
-            self.ctx.store("expr_result", result)
-            self.ctx.advance()
+            ctx.store("expr_result", result)
+            ctx.advance()
 
         # Step 1: Get address and handle storage based on type
-        result: EvaluationResult = self.ctx.get("expr_result")
+        result: EvaluationResult = ctx.get("expr_result")
 
         # Get the target base address
         # For a Vec, this should be the address of the .ptr field
@@ -208,24 +194,19 @@ class CompoundAssignment(Instruction):
         self.lvalue = lvalue
         self.op = op
         self.expr = expr
-        self.ctx = ExecutionContext()
-
-    def reset_ctx(self):
-        self.ctx.reset()
-        if hasattr(self.expr, "reset_ctx"):
-            self.expr.reset_ctx()  # type: ignore
 
     def execute(self, mem, prog) -> ExecutionStatus:
+        ctx = self.get_ctx(mem)
         # Step 0: Evaluate the expression
-        if self.ctx.step == 0:
+        if ctx.step == 0:
             result = self.expr.evaluate(mem, prog)  # type: ignore
             if result == ExecutionStatus.INCOMPLETE:
                 return ExecutionStatus.INCOMPLETE
-            self.ctx.store("expr_result", result)
-            self.ctx.advance()
+            ctx.store("expr_result", result)
+            ctx.advance()
 
         # Step 1: Perform operation and store
-        result: EvaluationResult = self.ctx.get("expr_result")
+        result: EvaluationResult = ctx.get("expr_result")
         addr = self.lvalue.get_address(mem, prog)
 
         current_val = mem.mem[addr].value
@@ -257,10 +238,6 @@ class ExpressionStatement(Instruction):
     def __init__(self, expr: Expression):
         self.expr = expr
 
-    def reset_ctx(self):
-        if hasattr(self.expr, "reset_ctx"):
-            self.expr.reset_ctx()  # type: ignore
-
     def execute(self, mem, prog) -> ExecutionStatus:
         result = self.expr.evaluate(mem, prog)
         if result == ExecutionStatus.INCOMPLETE:
@@ -287,42 +264,33 @@ class IfElseBlock(Instruction):
         self.condition = condition
         self.then_body = then_body
         self.else_body = else_body or []
-        self.ctx = ExecutionContext()
-
-    def reset_ctx(self):
-        self.ctx.reset()
-        for elmt in self.then_body:
-            if hasattr(elmt, "reset_ctx"):
-                elmt.reset_ctx()  # type: ignore
-
-        for elmt in self.else_body:
-            if hasattr(elmt, "reset_ctx"):
-                elmt.reset_ctx()  # type: ignore
 
     def execute(self, mem, prog) -> ExecutionStatus:
+        ctx = self.get_ctx(mem)
         # Step 0: Evaluate condition
-        if self.ctx.step == 0:
+        if ctx.step == 0:
             result = self.condition.evaluate(mem, prog)
             if result == ExecutionStatus.INCOMPLETE:
                 return ExecutionStatus.INCOMPLETE
-            self.ctx.store("condition_result", result)
-            self.ctx.advance()
+            ctx.store("condition_result", result)
+            ctx.advance()
 
         # Step 1: Determine which branch to execute
-        condition_result: EvaluationResult = self.ctx.get("condition_result")
+        condition_result: EvaluationResult = ctx.get("condition_result")
 
         # Return the appropriate branch for the runner to execute
         # This is handled specially by the runner
         if condition_result.get_scalar():
-            self.ctx.store("chosen_branch", "then")
+            ctx.store("chosen_branch", "then")
             return ExecutionStatus.INCOMPLETE  # Signal runner to enter block
         else:
-            self.ctx.store("chosen_branch", "else")
+            ctx.store("chosen_branch", "else")
             return ExecutionStatus.INCOMPLETE
 
-    def get_chosen_branch(self) -> list[Instruction]:
+    def get_chosen_branch(self, mem) -> list[Instruction]:
         """Get the branch to execute based on condition"""
-        branch = self.ctx.get("chosen_branch")
+        ctx = self.get_ctx(mem)
+        branch = ctx.get("chosen_branch")
         if branch == "then":
             return self.then_body
         else:
@@ -346,28 +314,22 @@ class WhileLoop(Instruction):
     def __init__(self, condition: Expression, body: list[Instruction]):
         self.condition = condition
         self.body = body
-        self.ctx = ExecutionContext()
-
-    def reset_ctx(self):
-        self.ctx.reset()
-        if hasattr(self.condition, "reset_ctx"):
-            self.condition.reset_ctx()  # type: ignore
-        for elmt in self.body:
-            if hasattr(elmt, "reset_ctx"):
-                elmt.reset_ctx()  # type: ignore
 
     def execute(self, mem, prog) -> ExecutionStatus:
+        ctx = self.get_ctx(mem)
         # Evaluate condition each iteration
         result = self.condition.evaluate(mem, prog)
         if result == ExecutionStatus.INCOMPLETE:
             return ExecutionStatus.INCOMPLETE
-        self.condition.ctx.reset()  # type: ignore
-        self.ctx.store("condition_result", result)
+        cond_ctx = self.condition.get_ctx(mem)  # type: ignore
+        cond_ctx.reset()
+        ctx.store("condition_result", result)
         return ExecutionStatus.INCOMPLETE  # Signal runner to handle loop
 
-    def should_continue(self) -> bool:
+    def should_continue(self, mem) -> bool:
         """Check if loop should continue"""
-        result: EvaluationResult = self.ctx.get("condition_result")
+        ctx = self.get_ctx(mem)
+        result: EvaluationResult = ctx.get("condition_result")
         print(result, result.get_scalar())
         return bool(result.get_scalar())
 
@@ -384,12 +346,6 @@ class Return(Instruction):
 
     def __init__(self, expr: Optional[Expression] = None):
         self.expr = expr
-        self.ctx = ExecutionContext()
-
-    def reset_ctx(self):
-        self.ctx.reset()
-        if hasattr(self.expr, "reset_ctx"):
-            self.expr.reset_ctx()  # type: ignore
 
     def execute(self, mem, prog) -> ExecutionStatus:
         if self.expr is None:
@@ -440,7 +396,8 @@ class Return(Instruction):
             )
         print("result selected: ", result)
         # 3. Store result for caller
-        self.ctx.store("return_result", result)
+        ctx = self.get_ctx(mem)
+        ctx.store("return_result", result)
         return ExecutionStatus.COMPLETE
 
     def description(self) -> str:

@@ -3,6 +3,8 @@
 # ═══════════════════════════════════════════════════════════
 from dataclasses import dataclass, field
 
+from emulator.core.base import ExecutionContext
+
 MEM_SIZE = 26
 STACK_TOP = MEM_SIZE - 1
 HEAP_BOTTOM = 1
@@ -31,6 +33,7 @@ class StackFrame:
     size: int
     vars_map: dict[str, int] = field(default_factory=dict)
     slots_allocated: int = 0
+    contexts: dict[int, ExecutionContext] = field(default_factory=dict)
     ret_dest: str | None = None
     ret_type: str | None = None
     ret_size: int | None = None

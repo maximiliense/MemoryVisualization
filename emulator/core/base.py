@@ -40,68 +40,6 @@ class EvaluationResult:
         return self.values[0]
 
 
-class Expression(ABC):
-    """
-    Base class for all expressions (RValues).
-    Expressions evaluate to results without side effects.
-    """
-
-    @abstractmethod
-    def evaluate(self, mem, prog) -> Union[EvaluationResult, ExecutionStatus]:
-        """
-        Evaluate the expression.
-
-        Returns:
-            - EvaluationResult: If evaluation completes
-            - ExecutionStatus.INCOMPLETE: If needs more steps
-        """
-        pass
-
-    @abstractmethod
-    def description(self) -> str:
-        """Human-readable description for visualization"""
-        pass
-
-
-class LValue(ABC):
-    """
-    Base class for locations that can be assigned to.
-    LValues represent "where" to store values.
-    """
-
-    @abstractmethod
-    def get_address(self, mem, prog) -> Union[int, list[int]]:
-        """Get memory address(es) for this lvalue"""
-        pass
-
-    @abstractmethod
-    def description(self) -> str:
-        """Human-readable description"""
-        pass
-
-
-class Instruction(ABC):
-    """
-    Base class for all instructions (statements with side effects).
-    Instructions modify memory and can be incomplete.
-    """
-
-    @abstractmethod
-    def execute(self, mem, prog) -> ExecutionStatus:
-        """
-        Execute the instruction.
-
-        Returns:
-            ExecutionStatus indicating if execution is complete
-        """
-        pass
-
-    @abstractmethod
-    def description(self) -> str:
-        """Human-readable description for visualization"""
-        pass
-
-
 @dataclass
 class ExecutionContext:
     """
@@ -132,3 +70,106 @@ class ExecutionContext:
     def get(self, key: str, default=None) -> Any:
         """Retrieve temporary result"""
         return self.temp_results.get(key, default)
+
+
+class ContextObjects(ABC):
+    def get_ctx(self, mem) -> ExecutionContext:
+        """
+        Retrieves the execution context for this specific expression
+        instance from the current stack frame.
+        """
+        if not mem.call_stack:
+            raise RuntimeError("No active stack frame to retrieve context.")
+
+        frame = mem.call_stack[-1]
+        obj_id = id(self)
+
+        if obj_id not in frame.contexts:
+            from emulator.core.base import ExecutionContext
+
+            frame.contexts[obj_id] = ExecutionContext()
+
+        return frame.contexts[obj_id]
+
+    def reset_ctx(self, mem):
+        """
+        Recursively resets contexts for this node and all sub-nodes
+        stored in attributes or lists of attributes.
+        """
+        # 1. Reset the context for 'self' in the current frame
+        ctx = self.get_ctx(mem)
+        ctx.reset()
+
+        # 2. Inspect all attributes of this instance
+        for attr_name, attr_value in vars(self).items():
+            # Scenario A: The attribute is a single object (e.g., self.expr)
+            if hasattr(attr_value, "reset_ctx"):
+                attr_value.reset_ctx(mem)
+
+            # Scenario B: The attribute is a list (e.g., self.body or self.args)
+            elif isinstance(attr_value, list):
+                for item in attr_value:
+                    if hasattr(item, "reset_ctx"):
+                        item.reset_ctx(mem)
+
+
+class Expression(ContextObjects):
+    """
+    Base class for all expressions (RValues).
+    Expressions evaluate to results without side effects.
+    """
+
+    @abstractmethod
+    def evaluate(self, mem, prog) -> Union[EvaluationResult, ExecutionStatus]:
+        """
+        Evaluate the expression.
+
+        Returns:
+            - EvaluationResult: If evaluation completes
+            - ExecutionStatus.INCOMPLETE: If needs more steps
+        """
+        pass
+
+    @abstractmethod
+    def description(self) -> str:
+        """Human-readable description for visualization"""
+        pass
+
+
+class LValue(ContextObjects):
+    """
+    Base class for locations that can be assigned to.
+    LValues represent "where" to store values.
+    """
+
+    @abstractmethod
+    def get_address(self, mem, prog) -> Union[int, list[int]]:
+        """Get memory address(es) for this lvalue"""
+        pass
+
+    @abstractmethod
+    def description(self) -> str:
+        """Human-readable description"""
+        pass
+
+
+class Instruction(ContextObjects):
+    """
+    Base class for all instructions (statements with side effects).
+    Instructions modify memory and can be incomplete.
+    """
+
+    @abstractmethod
+    def execute(self, mem, prog) -> ExecutionStatus:
+        """
+        Execute the instruction.
+
+        Returns:
+            ExecutionStatus indicating if execution is complete
+        """
+        pass
+
+    @abstractmethod
+    def description(self) -> str:
+        """Human-readable description for visualization"""
+        pass
