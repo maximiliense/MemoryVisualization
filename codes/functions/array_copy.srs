@@ -1,0 +1,11 @@
+fn main() {
+    let arr: [i32; 2] = [1, 2];
+    let arr: [i32; 2] = modify(arr);
+    println!("arr={arr}");
+    return;
+}
+
+fn modify(arr: [i32; 2]) {
+    arr[0] = 12;
+    return arr;
+}

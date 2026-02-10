@@ -1,0 +1,10 @@
+fn main() {
+    // Un tableau est une suite de "cases"
+    let arr: [i32; 5] = [1, 2, 3, 4, 5];
+    // la première case est l'adresse de arr + 0 case
+    arr[0] = 99;
+    // la cinquième case est l'adresse de arr + 4 cases
+    arr[4] = 42;
+    println!("arr: {arr}");
+    return;
+}
