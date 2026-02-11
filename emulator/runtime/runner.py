@@ -107,7 +107,6 @@ class ProgramRunner:
 
         if not body or self.pc.line_idx >= len(body):
             # At end of block/function -> Unwinds/Returns (PC MOVES)
-            print("TOOT")
             self._handle_block_end()
             return True
 
@@ -117,7 +116,6 @@ class ProgramRunner:
         status = instr.execute(self.mem, self.program)
 
         if status == ExecutionStatus.COMPLETE:
-            print("tata", instr)
             # Move to next instruction (PC MOVES)
             if isinstance(instr, Return):
                 self._handle_return(instr)
@@ -128,7 +126,6 @@ class ProgramRunner:
                 return True
 
         elif status == ExecutionStatus.INCOMPLETE:
-            print("incomplete")
             # Check for Function Calls inside the current instruction
             target_expr = None
             if isinstance(instr, (ExpressionStatement, Return)):
@@ -183,7 +180,7 @@ class ProgramRunner:
                         param_type.startswith("&") or param_type.startswith("*")
                     )
                     is_array = not is_ptr and param_type and param_type.startswith("[")
-                    is_vec = not is_ptr and param_type == "Vec"
+                    is_vec = not is_ptr and param_type and param_type.startswith("Vec")
 
                     if is_array:
                         import re
@@ -292,7 +289,6 @@ class ProgramRunner:
 
         # Pop function frame to get back to caller's frame
         # frame = self.mem.call_stack[-1]
-        print("Handling return")
         self.mem.pop_frame()
 
         # Restore caller's position
@@ -308,12 +304,10 @@ class ProgramRunner:
                 body = self.program.functions[self.pc.fn_name].body
 
             waiting_instr = body[self.pc.line_idx]
-            print("toto", waiting_instr, return_result)
             if (
                 isinstance(waiting_instr, (LetBinding, Assignment, CompoundAssignment))
                 and return_result
             ):
-                print(waiting_instr, "expr_result", return_result)
                 waiting_ctx = waiting_instr.get_ctx(self.mem)
                 waiting_ctx.store("expr_result", return_result)
                 waiting_ctx.advance()

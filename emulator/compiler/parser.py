@@ -558,7 +558,6 @@ class Parser:
             # Parse the remainder (e.g., "v")
             inner = self._parse_primary(text[i:])
             return Dereference(inner, stars)
-
         # Function call: func(args)
         if "(" in text and text.endswith(")"):
             paren_pos = text.index("(")
@@ -569,10 +568,10 @@ class Parser:
             if func_name == "rand_int":
                 args = [self._parse_expression(a.strip()) for a in args_str.split(",")]
                 return RandInt(args[0], args[1])
-            elif func_name == "println!":
+            elif func_name in ("print!", "println!"):
                 # Simplified: just take the expression
                 arg = self._parse_expression(args_str)
-                return Println(arg)
+                return Println(arg, new_line=func_name.endswith("ln!"))
 
             args = (
                 [
@@ -609,7 +608,7 @@ class Parser:
         return Variable(text)
 
 
-def compile_rust(source: str) -> Program:
+def compile_srs(source: str) -> Program:
     """Compile Rust-like source code to V2 AST"""
     parser = Parser()
     return parser.parse(source)

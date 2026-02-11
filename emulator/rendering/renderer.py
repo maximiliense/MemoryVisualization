@@ -246,7 +246,7 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: ProgramCounter):
 
     group_lut, next_group_idx = {}, 0
     GROUP_BG_BASE = (1, 1, 1, 0.15)
-    GROUP_BG_ALT = (1, 1, 1, 0.25)
+    GROUP_BG_ALT = (1, 1, 1, 0.35)
 
     for a in range(MEM_SIZE):
         cy = addr_y(a)
@@ -268,11 +268,12 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: ProgramCounter):
             and ("." in cell.label or "[" in cell.label)
             and not getattr(cell, "freed", False)
         ):
-            group = group_name(cell.label)
-            if group not in group_lut:
-                group_lut[group] = next_group_idx
+            base_name = group_name(cell.label)
+            group_key = (cell.frame_idx, base_name)
+            if group_key not in group_lut:
+                group_lut[group_key] = next_group_idx
                 next_group_idx += 1
-            bg_col = GROUP_BG_BASE if (group_lut[group] % 2 == 0) else GROUP_BG_ALT
+            bg_col = GROUP_BG_BASE if (group_lut[group_key] % 2 == 0) else GROUP_BG_ALT
             ax.add_patch(
                 mpatches.FancyBboxPatch(
                     (7.45, cy - CELL_H / 2 - 0.03),

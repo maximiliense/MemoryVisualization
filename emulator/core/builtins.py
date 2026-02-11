@@ -25,7 +25,6 @@ class MethodCall(Expression):
         prog,
     ) -> Union[EvaluationResult, ExecutionStatus]:
         # Step 0: Evaluate object
-        print("Evaluating method call")
         ctx = self.get_ctx(mem)
         if ctx.step == 0:
             obj_result = self.obj.evaluate(mem, prog)
@@ -57,18 +56,18 @@ class MethodCall(Expression):
                     # Fallback: if it's a simple Variable
                     res = self.obj.evaluate(mem, prog)
                     base_addr = res.get_scalar()  # type: ignore
-
+                var_name = mem.mem[base_addr].label.split(".")[0]
                 ctx.store("base_addr", base_addr)
                 ctx.advance()
             except Exception as e:
                 raise ValueError(f"Method call target must have an address: {e}")
-            return self._execute_push(mem, base_addr, ctx)  # type ignore
+            return self._execute_push(mem, base_addr, ctx, var_name)  # type ignore
         elif self.method == "clone":
             return self._execute_clone(mem, obj_result)
         else:
             raise NotImplementedError(f"Method {self.method} not implemented")
 
-    def _execute_push(self, mem, base_addr, ctx):
+    def _execute_push(self, mem, base_addr, ctx, var_name):
         """Execute Vec.push(value) using metadata addresses"""
 
         if base_addr is None:
@@ -86,7 +85,6 @@ class MethodCall(Expression):
         ptr = mem.mem[p_addr].value
         length = mem.mem[l_addr].value
         cap = mem.mem[c_addr].value
-        print(base_addr, ptr, length, cap)
         if not (
             isinstance(ptr, int) and isinstance(length, int) and isinstance(cap, int)
         ):
@@ -101,19 +99,19 @@ class MethodCall(Expression):
             new_cap = cap * 2 if cap > 0 else 4
             # Allocate new buffer on heap
             new_ptr = mem.alloc_heap(None, "i32", new_cap)
-
+            for i in range(length):
+                mem.mem[ptr + i].label = None
             # Move elements to new heap location
             for i in range(length):
                 old_cell = mem.mem[ptr + i]
                 mem.mem[new_ptr + i].value = old_cell.value
-                mem.mem[
-                    new_ptr + i
-                ].label = f"heap[{new_ptr + i}]"  # Generic heap label
+                mem.mem[new_ptr + i].label = f"{var_name}[{i}]"  # Generic heap label
 
                 # Clean up old heap
                 old_cell.freed = True
                 old_cell.value = "FREED"
-
+            for i in range(length, new_cap):
+                mem.mem[new_ptr + i].label = f"{var_name}[{i}]"
             # Update metadata in memory
             mem.mem[p_addr].value = new_ptr
             mem.mem[c_addr].value = new_cap
@@ -193,8 +191,9 @@ class RandInt(Expression):
 class Println(Expression):
     """Print macro: println!("{}", expr)"""
 
-    def __init__(self, expr: Expression):
+    def __init__(self, expr: Expression, new_line=False):
         self.expr = expr
+        self.new_line = new_line
 
     def evaluate(self, mem, prog) -> Union[EvaluationResult, ExecutionStatus]:
         ctx = self.get_ctx(mem)
@@ -206,6 +205,7 @@ class Println(Expression):
             ctx.advance()
 
         result = ctx.get("result")
+        print(*result.values, end="\n" if self.new_line else "", flush=True)
         # In visualization, we don't actually print, just show the instruction
         # But we could add to a print log if needed
         return EvaluationResult(values=[None], typ="()")

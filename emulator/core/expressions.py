@@ -21,6 +21,8 @@ class Literal(Expression):
         return EvaluationResult(values=[self.value], typ=self.typ)
 
     def description(self) -> str:
+        if self.typ == "str":
+            return f'"{self.value}"'
         return str(self.value)
 
 
@@ -36,7 +38,6 @@ class Variable(Expression):
             addr = mem.get_addr(self.name)
             is_vec = False
         except Exception:
-            print("this is a Vec")
             addr = mem.get_addr(f"{self.name}.cap")
             is_vec = True
         cell = mem.mem[addr]
@@ -48,14 +49,12 @@ class Variable(Expression):
         if cell.typ == "array" or "[" in cell.label:
             # This is an array - return the BASE ADDRESS, not the value
             # The address itself is what ArrayAccess needs
-            print("\t\t VARIABLE:", cell.typ, cell.label)
             return EvaluationResult(
                 values=[addr],  # ← THE ADDRESS
                 typ=cell.typ,
                 is_pointer=False,  # Not a pointer, but an array
             )
         elif is_vec:
-            print("this is a Vec")
             # Vec is stored as metadata (ptr, len, cap)
             # Return the base address where metadata starts
             return EvaluationResult(values=[addr], typ="Vec", is_pointer=False)
@@ -108,7 +107,6 @@ class ArrayAccess(Expression):
         base_addr = arr_result.get_scalar()
         value = mem.mem[base_addr + idx].value
         typ = mem.mem[base_addr + idx].typ
-        print("result of array", value)
 
         return EvaluationResult(values=[value], typ=typ)
 
@@ -194,17 +192,14 @@ class FunctionCall(Expression):
                 _, param_type = func_def.params[arg_idx]
 
                 if param_type == "Vec" or (param_type and param_type.startswith("Vec")):
-                    print("here", arg_result)
                     base_addr = arg_result.get_scalar()  # type: ignore
 
                     # Vec is a struct of 3 values: [ptr, len, cap]
                     # We copy these 3 metadata values from memory
                     metadata_values = []
-                    print(base_addr)
                     for offset in range(3):
                         cell = mem.mem[base_addr + offset]
                         metadata_values.append(cell.value)
-                    print(metadata_values)
                     arg_result = EvaluationResult(
                         values=metadata_values, typ="Vec", is_pointer=False
                     )
@@ -311,7 +306,6 @@ class Dereference(Expression):
             or target_addr < 0
             or target_addr >= len(mem.mem)
         ):
-            print(target_addr)
             raise ValueError(f"Invalid dereference target: {target_addr}")
 
         cell = mem.mem[target_addr]

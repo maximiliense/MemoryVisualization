@@ -1,0 +1,15 @@
+fn main() {
+    let n: i32 = 10;
+    let i: i32 = 3;
+    let fibo: [i32; 2] = [1, 1];
+    let prev: i32;
+    while i < n {
+        prev = fibo[1];
+        fibo[1] = fibo[0] + fibo[1];
+        fibo[0] = prev;
+        i += 1;
+    }
+    print!("Last computed term: ");
+    println!(fibo[1]);
+    return;
+}

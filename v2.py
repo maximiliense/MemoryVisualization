@@ -5,7 +5,9 @@ Demonstrates the V2 architecture with cleaner separation of concerns.
 """
 
 # Example program showing V2 capabilities
+from emulator.launcher import ProgramLauncher
 from emulator.rendering.renderer import BG, render_to_ax
+from emulator.runtime.interactive import InteractiveRunner
 
 EXAMPLE_PROGRAM = """
 fn main() {
@@ -233,7 +235,8 @@ EXAMPLE_PROGRAM14 = """
 fn main() {
     let n: i32 = 4;
     let f = fibonacci(n);
-    println!("Fibo({n})={f}");
+    print!("Fibinacci: ");
+    println!(f);
     return;
 }
 fn fibonacci(n: i32) {
@@ -256,14 +259,63 @@ fn fibonacci(n: i32) {
 
 """
 
+EXAMPLE_PROGRAM15 = """
+fn main() {
+    let n: i32 = 4;
+    let f = test(n);
+    print!("test: ");
+    println!(f);
+    return;
+}
+fn test(n: i32) {
+    n+=1;
+    return n;
+}
+
+"""
+
+EXAMPLE_PROGRAM16 = """
+fn main() {
+    // setup vec
+    let v = vec![1, 2];
+    process(v);
+    return;
+}
+
+fn process(v: Vec<i32>) {
+    v.push(42);
+    return;
+}
+
+"""
+
+EXAMPLE_PROGRAM17 = """
+fn main() {
+    // Setup Vec
+    let mut v = vec![1, 2];
+    let p = &v;
+    process(p);
+    drop(v);
+    return;
+}
+
+fn process(p: &Vec<_>) {
+    // p is a reference to the vec in the
+    // main's stackframe
+    *p.push(42);
+    return;
+}
+
+"""
+
 if __name__ == "__main__":
     # Import V2 components
 
-    import matplotlib.pyplot as plt
+    # import matplotlib.pyplot as plt
 
-    from emulator.compiler.parser import compile_rust
-    from emulator.runtime.architecture import MemoryModel
-    from emulator.runtime.runner import ProgramRunner
+    from emulator.compiler.parser import compile_srs
+    # from emulator.runtime.architecture import MemoryModel
+    # from emulator.runtime.runner import ProgramRunner
 
     print("=" * 60)
     print("V2 MEMORY VISUALIZER - EXAMPLE")
@@ -271,45 +323,46 @@ if __name__ == "__main__":
 
     # Compile the program
     print("\n1. Compiling program...")
-    program = compile_rust(EXAMPLE_PROGRAM12)
+    program = compile_srs(EXAMPLE_PROGRAM15)
     print(f"   Functions: {list(program.functions.keys())}")
+    runner = InteractiveRunner(program)
 
-    # Show the AST structure
-    print("\n2. AST Structure:")
-    for fn_name, fn_def in program.functions.items():
-        print(f"\n   {fn_name}({', '.join(p for p, _ in fn_def.params)}):")
-        for i, instr in enumerate(fn_def.body):
-            print(f"      {i}: {instr.description()}")
+    # # Show the AST structure
+    # print("\n2. AST Structure:")
+    # for fn_name, fn_def in program.functions.items():
+    #     print(f"\n   {fn_name}({', '.join(p for p, _ in fn_def.params)}):")
+    #     for i, instr in enumerate(fn_def.body):
+    #         print(f"      {i}: {instr.description()}")
 
-    # Create memory and runner
-    print("\n3. Initializing runtime...")
-    mem = MemoryModel()
-    runner = ProgramRunner(program, mem)
-    fig, ax = plt.subplots(figsize=(14, 9), facecolor=BG)
-    render_to_ax(ax, mem, program, runner.pc)
-    plt.show()
-    # Execute step by step
-    print("\n4. Executing program (first 10 steps):")
-    for step in range(45):
-        if runner.is_finished():
-            print(f"\n   Program finished after {step} steps")
-            break
+    # # Create memory and runner
+    # print("\n3. Initializing runtime...")
+    # mem = MemoryModel()
+    # runner = ProgramRunner(program, mem)
+    # fig, ax = plt.subplots(figsize=(14, 9), facecolor=BG)
+    # render_to_ax(ax, mem, program, runner.pc)
+    # plt.show()
+    # # Execute step by step
+    # print("\n4. Executing program (first 10 steps):")
+    # for step in range(55):
+    #     if runner.is_finished():
+    #         print(f"\n   Program finished after {step} steps")
+    #         break
 
-        # Get current instruction
-        if runner.pc.block_stack:
-            body, _ = runner.pc.block_stack[-1]
-        else:
-            body = program.functions[runner.pc.fn_name].body
+    #     # Get current instruction
+    #     if runner.pc.block_stack:
+    #         body, _ = runner.pc.block_stack[-1]
+    #     else:
+    #         body = program.functions[runner.pc.fn_name].body
 
-        if body and runner.pc.line_idx < len(body):
-            instr = body[runner.pc.line_idx]
-            print(f"\n   Step {step}: {runner.pc.fn_name}[{runner.pc.line_idx}]")
-            print(f"            {instr.description()}")
+    #     if body and runner.pc.line_idx < len(body):
+    #         instr = body[runner.pc.line_idx]
+    #         print(f"\n   Step {step}: {runner.pc.fn_name}[{runner.pc.line_idx}]")
+    #         print(f"            {instr.description()}")
 
-        # Execute one step
-        if runner.step():
-            fig, ax = plt.subplots(figsize=(14, 9), facecolor=BG)
-            render_to_ax(ax, mem, program, runner.pc)
-            plt.show()
-        if runner.is_finished():
-            break
+    #     # Execute one step
+    #     if runner.step():
+    #         fig, ax = plt.subplots(figsize=(14, 9), facecolor=BG)
+    #         render_to_ax(ax, mem, program, runner.pc)
+    #         plt.show()
+    #     if runner.is_finished():
+    #         break

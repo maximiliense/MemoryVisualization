@@ -64,7 +64,6 @@ class LetBinding(Instruction):
         result: EvaluationResult = ctx.get("expr_result")
 
         # Special handling for different types
-        print(result, result.typ)
         if result.typ == "Vec":
             if len(result.values) == 3:
                 cap_val, len_val, ptr_val = result.values
@@ -149,7 +148,6 @@ class Assignment(Instruction):
         addr = self.lvalue.get_address(mem, prog)
 
         # 1. Handle Vec Assignment (Copying Metadata)
-        print(result.values, result.typ, result)
         if result.typ == "Vec":
             if len(result.values) == 3:
                 # result.values is [ptr, len, cap]
@@ -164,7 +162,6 @@ class Assignment(Instruction):
             # We assume the LValue addr is the start of a span
             for i, val in enumerate(result.values):
                 target_cell_addr = addr + i  # type: ignore
-                print("addr: ", target_cell_addr)
                 if target_cell_addr < len(mem.mem):
                     mem.mem[target_cell_addr].value = val
 
@@ -175,7 +172,6 @@ class Assignment(Instruction):
             mem.mem[addr].is_pointer = result.is_pointer
             # Update type if necessary
             if result.typ and not mem.mem[addr].typ:
-                print("\t\tSETTING TYPE:", result.typ)
                 mem.mem[addr].typ = result.typ
 
         return ExecutionStatus.COMPLETE
@@ -330,7 +326,6 @@ class WhileLoop(Instruction):
         """Check if loop should continue"""
         ctx = self.get_ctx(mem)
         result: EvaluationResult = ctx.get("condition_result")
-        print(result, result.get_scalar())
         return bool(result.get_scalar())
 
     def description(self) -> str:
@@ -379,7 +374,6 @@ class Return(Instruction):
                 result = EvaluationResult(
                     values=return_values, typ=result.typ, is_pointer=False
                 )
-                print("RETURNING : ", result)
         elif result.typ == "Vec" or (result.typ and result.typ.startswith("Vec")):
             # The result from evaluate() is the base address of the Vec metadata
             base_addr = result.get_scalar()
@@ -394,7 +388,6 @@ class Return(Instruction):
             result = EvaluationResult(
                 values=[ptr, length, cap], typ="Vec", is_pointer=False
             )
-        print("result selected: ", result)
         # 3. Store result for caller
         ctx = self.get_ctx(mem)
         ctx.store("return_result", result)
@@ -431,6 +424,7 @@ class Drop(Instruction):
                     if 0 <= addr < len(mem.mem):
                         mem.mem[addr].freed = True
                         mem.mem[addr].value = "FREED"
+                        mem.mem[addr].label = None
 
             mem.mem[p_addr].value = "null"
             mem.mem[p_addr].is_pointer = False
@@ -443,6 +437,7 @@ class Drop(Instruction):
 
             if isinstance(ha, int):
                 mem.mem[ha].freed = True
+                mem.mem[ha].label = None
                 mem.mem[ha].value = "FREED"
 
             mem.mem[pa].value = "null"
