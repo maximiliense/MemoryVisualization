@@ -159,8 +159,8 @@ if __name__ == "__main__":
         "Memory tampering": (p25, FRAME_PALETTE[0]),
         "It Fibonacci": (p26, FRAME_PALETTE[3]),
         "Array copy&ret": (p27, FRAME_PALETTE[2]),
-        "&Array": (p27, FRAME_PALETTE[2]),
-        "Static Array 2": (p28, FRAME_PALETTE[0]),
+        "&Array": (p28, FRAME_PALETTE[2]),
+        "Static Array 2": (p29, FRAME_PALETTE[0]),
     }
 
     ProgramLauncher(PROGS)
