@@ -8,6 +8,7 @@ fn main() {
     // a's type is infered to be i32
     // and a is at an offset of 0
     let a = x + y;
-    println!("a = {a}");
+    print!("a = ");
+    println!(a);
     return;
 }

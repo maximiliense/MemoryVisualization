@@ -316,7 +316,7 @@ class Parser:
 
         # Compound assignment (+=, -=, etc.)
         match = re.match(r"(.+?)\s*([+\-*/])=\s*(.+)", stmt)
-        if match:
+        if match and not stmt.startswith("print"):
             lvalue_str = match.group(1).strip()
             op = match.group(2) + "="
             expr_str = match.group(3).strip()
@@ -327,7 +327,7 @@ class Parser:
 
         # Assignment
         match = re.match(r"(.+?)\s*=\s*(.+)", stmt)
-        if match:
+        if match and not stmt.startswith("print"):
             lvalue_str = match.group(1).strip()
             expr_str = match.group(2).strip()
 
