@@ -45,7 +45,6 @@ class Variable(Expression):
         # CRITICAL: Check if this is an array
         # Arrays are stored as multiple contiguous cells with labels like "arr[0]", "arr[1]", etc.
         # The address we get is the BASE address of the array
-
         if cell.typ == "array" or "[" in cell.label:
             # This is an array - return the BASE ADDRESS, not the value
             # The address itself is what ArrayAccess needs
@@ -98,13 +97,16 @@ class ArrayAccess(Expression):
 
         # Step 2: Compute final result
         arr_result = ctx.get("array_result")
+
         idx_result = ctx.get("index_result")
 
         idx = idx_result.get_scalar()
 
-        # If array result is a pointer, dereference it
-
-        base_addr = arr_result.get_scalar()
+        if arr_result.typ.startswith("Vec"):
+            v_ptr = arr_result.values[0] + 2
+            base_addr = mem.mem[v_ptr].value
+        else:
+            base_addr = arr_result.get_scalar()
         value = mem.mem[base_addr + idx].value
         typ = mem.mem[base_addr + idx].typ
 

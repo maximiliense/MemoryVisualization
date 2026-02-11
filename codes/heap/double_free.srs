@@ -1,5 +1,6 @@
 fn main() {
     let p1 = Box::new(42);
+    // Rust would clone p1 below, but here we copy address only
     let p2 = p1;
     drop(p2);
     // We should not drop p1 !!

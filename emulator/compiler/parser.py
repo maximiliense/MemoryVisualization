@@ -307,7 +307,8 @@ class Parser:
         if match:
             var_name = match.group(1)
             # NEW: Check if this variable is a Vec
-            is_vec = self.current_func_vars.get(var_name) == "Vec"
+            typ = self.current_func_vars.get(var_name)
+            is_vec = typ is not None and typ.startswith("Vec")
             return Drop(var_name, is_vec=is_vec)
 
         # Let binding

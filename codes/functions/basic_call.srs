@@ -1,4 +1,7 @@
 fn hello_world() {
+    // x is not main's x but a new
+    // variable on the stack in hello_world
+    // that happens to have the name x as well
     let x: i32 = 5;
     println!("Hello, world!");
     return;

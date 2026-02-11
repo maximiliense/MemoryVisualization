@@ -3,6 +3,9 @@ fn main() {
     let mut v = vec![1, 2];
     let b = Box::new(50);
     let r = &v.len;
+    let w = *r + v[0];
+    print!("w=");
+    println!(w);
     drop(v);
     drop(b);
     return;

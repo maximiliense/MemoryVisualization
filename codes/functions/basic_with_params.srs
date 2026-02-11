@@ -4,7 +4,6 @@ fn main() {
     let y: i32 = 10;
     // Calling process with x and y
     process(x, y);
-    println!("x={x}, y={y}");
     return;
 }
 

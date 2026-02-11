@@ -10,6 +10,6 @@ fn main() {
 fn process(p: &Vec<_>) {
     // p is a reference to the vec in the
     // main's stackframe
-    (*p).push(42);
+    *p.push(42);
     return;
 }

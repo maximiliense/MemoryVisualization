@@ -200,7 +200,6 @@ class ProgramRunner:
                                 span=len(vals),
                                 is_pointer=False,
                             )
-                            print("\t\tALLOCATING ON STACK:", param_type)
 
                     elif is_vec:
                         # Vec has 3 components: ptr, len, cap

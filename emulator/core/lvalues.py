@@ -59,9 +59,7 @@ class ArrayIndexLValue(LValue):
         if isinstance(self.array, Dereference):
             # For (*p)[idx], we need the address STORED in p
             # We use a specialized method to avoid fetching the actual data
-            print("here", self.array)
             base_addr = self.array.get_target_address(mem, prog)
-            print(base_addr)
         elif isinstance(self.array, Variable):
             # For arr[idx], Variable.evaluate returns the address of the first element
             res = self.array.evaluate(mem, prog)

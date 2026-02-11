@@ -36,8 +36,12 @@ class InteractiveRunner:
             exit()
 
     def step(self):
-        while not self.runner.step():
-            pass
+        try:
+            while not self.runner.step():
+                pass
+        except Exception as e:
+            print(e)
+            exit()
 
     def update_display(self):
         self.ax.clear()

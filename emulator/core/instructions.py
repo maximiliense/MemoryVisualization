@@ -50,7 +50,8 @@ class LetBinding(Instruction):
         if ctx.step == 0:
             if self.expr is None:
                 # Uninitialized variable
-                mem.alloc_stack_var(self.var_name, self.typ or "i32", None)
+                is_pointer = None if self.typ is None else self.typ.startswith("&")
+                mem.alloc_stack_var(self.var_name, self.typ or "i32", None, is_pointer)
                 return ExecutionStatus.COMPLETE
 
             result = self.expr.evaluate(mem, prog)  # type: ignore
@@ -169,9 +170,9 @@ class Assignment(Instruction):
         else:
             # Single address update
             mem.mem[addr].value = result.get_scalar()
-            mem.mem[addr].is_pointer = result.is_pointer
             # Update type if necessary
             if result.typ and not mem.mem[addr].typ:
+                mem.mem[addr].is_pointer = result.is_pointer
                 mem.mem[addr].typ = result.typ
 
         return ExecutionStatus.COMPLETE

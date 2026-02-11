@@ -1,0 +1,11 @@
+fn main() {
+    let arr: [i32; 5] = [1, 2, 3, 5, 6];
+    let arr_ref = &arr;
+    modify(arr_ref);
+    return;
+}
+
+fn modify(arr: &[i32; 5]) {
+    *arr[0] = 9999;
+    return;
+}

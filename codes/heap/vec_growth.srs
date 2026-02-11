@@ -4,7 +4,7 @@ fn main() {
     v.push(20);
     v.push(30);
     v.push(40);
-    let a: i32 = 10;
+    let a: i32 = v.len;
     drop(v);
     return;
 }

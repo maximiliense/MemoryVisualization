@@ -1,7 +1,8 @@
 fn main() {
     let n: i32 = 4;
     let f = fibonacci(n);
-    println!("Fibo({n})={f}");
+    print!("Fibo = ");
+    println!(f);
     return;
 }
 fn fibonacci(n: i32) {
