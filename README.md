@@ -7,20 +7,10 @@ A lightweight, interactive Python tool designed to help students visualize **Sta
 ## 🖥️ User Interface & Simulation
 
 When you launch the program, you are greeted with a categorized menu of memory illustrations:
-![](figs/menu.png)
-
 
 Once an illustration is selected, the visualizer opens a window showing the live state of the Stack and Heap:
 
-![](figs/simu.png)
-
 *The simulation highlights the current line of code, the active stack frames, and dynamic pointers between memory locations.*
-
-![](figs/mix.png)
-
-![](figs/functions.png)
-
-Here is a draft for your disclaimer. It balances technical honesty with the fact that this is a pedagogical tool.
 
 ---
 
@@ -28,9 +18,10 @@ Here is a draft for your disclaimer. It balances technical honesty with the fact
 
 This project is designed as a **conceptual visualizer** to help learners understand the relationship between source code, the stack, and the heap. To maintain clarity, several low-level architectural complexities have been abstracted away:
 
-* **Stack Contents:** In a real-world environment (like x86-64 or ARM), the stack contains much more than just local variables. It includes **return addresses** (saved Instruction Pointers), **frame pointers** (EBP/RBP), and **padding** for memory alignment.
-* **Register Usage:** Modern compilers make heavy use of **CPU Registers** (e.g., `rax`, `rbx`) to pass arguments and perform arithmetic. In this visualizer, many operations are shown as direct memory manipulations for better visibility, whereas a real CPU would perform these in registers.
-* ...
+* **Stack Contents:** In a real-world environment (like x86-64 or ARM), the stack contains more than just local variables. It includes **return addresses**, **frame pointers**, and **padding** for alignment.
+* **Register Usage:** Modern CPUs use **Registers** for arithmetic. Here, operations are shown as direct memory manipulations for better visibility.
+
+---
 
 ## 🚀 Getting Started
 
@@ -38,152 +29,129 @@ This project uses [uv](https://github.com/astral-sh/uv) for fast, reliable Pytho
 
 ### Prerequisites
 
-* [uv](https://docs.astral.sh/uv/getting-started/installation/) installed on your system.
-* Python 3.12+ (managed automatically by `uv`).
+* [uv](https://docs.astral.sh/uv/getting-started/installation/) installed.
+* Python 3.10+ (managed automatically by `uv`).
 
 ### Installation & Setup
 
 1. **Clone the repository**:
+
 ```bash
 git clone git@github.com:maximiliense/MemoryVisualization.git
 cd MemoryVisualization
 
 ```
 
-
 2. **Sync dependencies**:
-This command creates a virtual environment and installs all necessary dependencies (`matplotlib`) automatically:
+
 ```bash
 uv sync
 
 ```
 
-
-
 ### Running the Visualizer
 
-To launch the interactive menu, use `uv run`. This ensures the script runs within the correct environment with all dependencies available:
+To launch the interactive menu:
 
 ```bash
 uv run python main.py
 
 ```
 
+---
 
+## 📝 Examples & Supported Syntax
 
-## 📝 Writing Your Own Programs
+The visualizer includes a parser that understands a subset of Rust-like syntax (with manual memory management). Below are examples of supported features:
 
-You can define custom scenarios in two ways:
+### 1. Vectors, Boxes, and Dropping
 
-### Option 1: Using Rust-like Syntax (Recommended)
-
-The visualizer includes a compiler that parses Rust-like code into executable instructions. This is the most intuitive way to create memory visualizations.
-
-**Supported Syntax:**
+Manage heap-allocated memory and manual cleanup.
 
 ```rust
 fn main() {
-    // Variable declarations
-    let x: i32 = 5;
-    let y: u32 = 10;
-    let z = 15;  // Type inferred as i32
-    
-    // Mutable vectors (heap-allocated, growable)
-    let mut v = vec![1, 2, 3];
-    v.push(4);  // Triggers reallocation if capacity exceeded
-    
-    // Fixed-size arrays (stack-allocated)
-    let arr: [i32; 5] = [10, 20, 30, 40, 50];
-    
-    // Heap allocation with Box
-    let p = Box::new(100);
-    
-    // References
-    let r = &x;
-    
-    // Dereferencing and assignment
-    *ptr = 42;
-    
-    // Arithmetic operations
-    let sum = x + y;
-    let diff = x - y;
-    let prod = x * y;
-    let quot = x / y;
-    
-    // Compound assignment
-    x += 1;
-    x -= 1;
-    
-    // Cloning
-    let p2 = p.clone();
-    
-    // Memory cleanup
-    drop(p);
-    
-    // Function calls
-    helper(x, y);
-    let result = compute(5);
-    
-    // Control flow
-    if x == 5 {
-        // then branch
-    } else {
-        // else branch
-    }
-    
-    // Return values
-    return x;
-}
-
-fn helper(a: i32, b: i32) {
-    // Function with parameters
-    let local = a + b;
+    let mut v = vec![10];
+    v.push(20);          // Triggers heap reallocation
+    let b = Box::new(100);
+    *b = 1000;           // Dereference assignment
+    drop(v);             // Explicitly free heap memory
+    drop(b);
     return;
 }
 
-fn compute(n: i32) -> i32 {
-    let result = n * 2;
-    return result;
-}
 ```
 
-**Using the Compiler:**
+### 2. Loops and Arrays
 
-```python
-from visualizer.compiler import compile_rust
+Visualize stack-allocated fixed-size arrays and iterative state changes.
 
-rust_code = """
+```rust
 fn main() {
-    let x: i32 = 10;
-    let mut v = vec![1, 2];
-    v.push(3);  // Triggers heap reallocation!
+    let n: i32 = 10;
+    let i: i32 = 3;
+    let fibo: [i32; 2] = [1, 1];
+    let prev: i32;
+    while i < n {
+        prev = fibo[1];
+        fibo[1] = fibo[0] + fibo[1];
+        fibo[0] = prev;
+        i += 1;
+    }
+    println!(fibo[1]);
     return;
 }
-"""
 
-program = compile_rust(rust_code)
-# Now run the program with the visualizer
 ```
 
-### Option 2: Using Python AST Style (Advanced)
+### 3. Pointer Chains (Deep Referencing)
 
-For more control, you can directly construct the Abstract Syntax Tree:
+Multiple levels of indirection look in the stack.
 
-```python
-from visualizer.instructions import StackVar, VecNew, VecPush, ReturnFunction
-from visualizer.runner import Program, FunctionDef
+```rust
+fn main() {
+    let a: i32 = 10;
+    let ra = &a;
+    let rra = &ra;
+    let rrra = &rra;
+    ***rrra = 42; // Deep dereference
+    return;
+}
 
-def my_custom_prog():
-    return Program({
-        "main": FunctionDef(
-            body=[
-                StackVar("x", "i32", 10),
-                VecNew("v", [1, 2], cap=2),
-                VecPush("v", 3), # Triggers a reallocation!
-                ReturnFunction()
-            ]
-        )
-    })
+```
+
+### 4. Function Calls and Stack Frames
+
+Parameters are passed by value or. by reference across frames.
+
+```rust
+fn main() {
+    let y: i32 = 20;
+    let y_ref = &y;
+    process(y, y_ref);
+    return;
+}
+
+fn process(y, y_ref) {
+    *y_ref = 999; // Modifies main's 'y'
+    y = 0;        // Modifies local copy
+    return;
+}
+
+```
+
+### 5. Memory Safety & Buffer Overflows
+
+Simulate "tampering" to show how out-of-bounds access can affect neighboring stack variables.
+
+```rust
+fn tampering() {
+    let x: i32 = 42;
+    let arr: [i32; 4] = [1, 2, 3, 4];
+    let idx: i32 = 5; 
+    arr[idx] = -99; // Illustrates writing past array bounds into 'x'
+    return;
+}
+
 ```
 
 ---
@@ -191,3 +159,50 @@ def my_custom_prog():
 ## ⌨️ Controls
 
 * **[RIGHT ARROW]**: Step forward to the next instruction.
+
+---
+
+## 🛠️ Command Line Interface (CLI)
+
+The project includes a standalone script, `srs_interpreter.py`, which serves as the entry point for executing custom source files. 
+
+### Usage
+
+To run a specific `.srs` (`simple rust`) file and view its memory layout, use the following command:
+
+```bash
+./srs_interpreter.py path/to/your_code.srs
+
+```
+
+*(Note: Ensure the script is executable with `chmod +x srs_interpreter.py`)*
+
+### How it Works
+
+The interpreter follows a three-stage pipeline to transform your source code into a live visualization:
+
+1. **Parsing**: The `compile_srs` function performs a recursive descent pass over your text file, generating a structured **Program** object.
+2. **Initialization**: The `InteractiveRunner` takes this program and prepares the `MemoryModel` and `ProgramCounter`, setting the execution to the first line of `main`.
+3. **Visualization Loop**: An interactive `matplotlib` window is launched. The runner listens for keyboard events (like the arrow keys) to drive the `ProgramRunner` through the code, updating the memory layout in real-time.
+
+### Workflow Example
+
+If you create a file named `test.srs` with the following content:
+
+```rust
+fn main() {
+    let mut data = vec![1, 2];
+    data.push(3);
+    return;
+}
+
+```
+
+Running `./srs_interpreter.py test.srs` will immediately open the GUI, allowing you to watch the stack frame for `main` grow and the heap reallocate as the vector expands.
+
+---
+
+### Tips for custom scripts:
+
+* **Entry Point**: Every script must contain a `fn main() { ... }` as the visualizer starts execution there.
+* **Imports**: You do not need to import anything within your Rust-like scripts; the built-ins (like `vec!`, `Box`, and `println!`) are globally available to the parser.
