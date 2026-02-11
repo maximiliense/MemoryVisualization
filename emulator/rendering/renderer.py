@@ -38,6 +38,26 @@ FRAME_PALETTE = [
 ]
 
 
+def darken_hex_color(hex_color, factor=0.7):
+    """
+    Darkens a hex color by a given factor.
+    :param hex_color: String like '#121212'
+    :param factor: Multiply RGB values by this (0.0 to 1.0)
+    :return: Darkened hex string
+    """
+    # Remove '#' if present
+    hex_color = hex_color.lstrip("#")
+
+    # Convert hex to RGB (0-255)
+    rgb = tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+
+    # Apply factor and ensure it stays within [0, 255]
+    darkened_rgb = tuple(max(0, int(c * factor)) for c in rgb)
+
+    # Convert back to hex
+    return "#{:02x}{:02x}{:02x}".format(*darkened_rgb)
+
+
 def group_name(label: str) -> str:
     return re.split(r"[.\[]", label, maxsplit=1)[0]
 
@@ -256,7 +276,13 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: ProgramCounter):
         if getattr(cell, "freed", False):
             fc = FREE_COL
         elif cell.frame_idx >= 0:
-            fc = FRAME_PALETTE[cell.frame_idx % len(FRAME_PALETTE)]
+            fn_name = mem.call_stack[cell.frame_idx].name
+
+            color = fn_list.index(fn_name)
+            if cell.frame_idx % 2 != 0:
+                fc = darken_hex_color(FRAME_PALETTE[color % len(FRAME_PALETTE)])
+            else:
+                fc = FRAME_PALETTE[color % len(FRAME_PALETTE)]
         elif cell.label != "":
             fc = HEAP_COL
         else:
@@ -386,7 +412,13 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: ProgramCounter):
     # --- STACK FRAMES (RIGHT SIDE BRACKETS) ---
     for fidx, frame in enumerate(mem.call_stack):
         y_hi, y_lo = addr_y(frame.base_addr + frame.size - 1), addr_y(frame.base_addr)
-        col = FRAME_PALETTE[fidx % len(FRAME_PALETTE)]
+        fn_name = frame.name
+
+        color = fn_list.index(fn_name)
+        if fidx % 2 != 0:
+            col = darken_hex_color(FRAME_PALETTE[color % len(FRAME_PALETTE)])
+        else:
+            col = FRAME_PALETTE[color % len(FRAME_PALETTE)]
         ax.plot([11.05, 11.05], [y_lo - 0.05, y_hi + 0.05], color=col, lw=2)
         ax.text(
             11.25,
