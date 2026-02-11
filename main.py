@@ -1,22 +1,12 @@
-"""
-============================================================
-  PEDAGOGICAL MEMORY VISUALIZER  v6.6 (Final)
-  ──────────────────────────────────
-  • Optimized Stack Sizing: No more wasted space.
-  • Inline Returns: `let x = func();` syntax.
-  • Full Instruction Set: Includes original Deref logic.
-============================================================
-"""
-
-from visualizer.compiler import compile_rust
-from visualizer.launcher import ProgramLauncher
-from visualizer.renderer import FRAME_PALETTE
+from emulator.compiler.parser import compile_srs
+from emulator.launcher import ProgramLauncher
+from emulator.rendering.renderer import FRAME_PALETTE
 
 
 def load_file(file):
     with open(file) as f:
         text = f.read()
-    return compile_rust(text)
+    return compile_srs(text)
 
 
 def p0():
@@ -123,6 +113,22 @@ def p25():
     return load_file("codes/stack/tampering.srs")
 
 
+def p26():
+    return load_file("codes/stack/iterative_fibo.srs")
+
+
+def p27():
+    return load_file("codes/functions/array_copy.srs")
+
+
+def p28():
+    return load_file("codes/functions/array_ref.srs")
+
+
+def p29():
+    return load_file("codes/stack/static_array_alone.srs")
+
+
 if __name__ == "__main__":
     PROGS = {
         "Stack variables": (p0, FRAME_PALETTE[0]),  # stack
@@ -146,11 +152,15 @@ if __name__ == "__main__":
         "Function vec by ref": (p18, FRAME_PALETTE[1]),  # heap
         "Basic func & params": (p19, FRAME_PALETTE[2]),  # function
         "Complex realloc": (p20, FRAME_PALETTE[1]),  # heap
-        "Fibonacci": (p21, FRAME_PALETTE[3]),  # advanced
+        "Rec Fibonacci": (p21, FRAME_PALETTE[3]),  # advanced
         "Double free": (p22, FRAME_PALETTE[1]),
         "Double free 2": (p23, FRAME_PALETTE[1]),
         "Reference/copy array": (p24, FRAME_PALETTE[0]),
         "Memory tampering": (p25, FRAME_PALETTE[0]),
+        "It Fibonacci": (p26, FRAME_PALETTE[3]),
+        "Array copy&ret": (p27, FRAME_PALETTE[2]),
+        "&Array": (p27, FRAME_PALETTE[2]),
+        "Static Array 2": (p28, FRAME_PALETTE[0]),
     }
 
     ProgramLauncher(PROGS)
