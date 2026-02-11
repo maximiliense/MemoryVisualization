@@ -11,6 +11,7 @@ When you launch the program, you are greeted with a categorized menu of memory i
 Once an illustration is selected, the visualizer opens a window showing the live state of the Stack and Heap:
 ![](figs/fibo.png)
 *The simulation highlights the current line of code, the active stack frames, and dynamic pointers between memory locations.*
+![](figs/functions2.png)
 ![](figs/functions.png)
 
 ![](figs/mix.png)
