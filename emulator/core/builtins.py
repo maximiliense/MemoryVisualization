@@ -211,4 +211,7 @@ class Println(Expression):
         return EvaluationResult(values=[None], typ="()")
 
     def description(self) -> str:
-        return f'println!("{{}}", {self.expr.description()})'
+        if self.new_line:
+            return f'println!("{{}}", {self.expr.description()})'
+        else:
+            return f'print!("{{}}", {self.expr.description()})'

@@ -1,8 +1,7 @@
 fn main() {
     let arr: [i32; 2] = [1, 2];
     func_copy(arr);
-    let p = &arr;
-    func_ref(p);
+    func_ref(&arr);
     return;
 }
 

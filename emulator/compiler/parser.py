@@ -520,7 +520,6 @@ class Parser:
                         prev_idx = i - 1
                         while prev_idx >= 0 and text[prev_idx].isspace():
                             prev_idx -= 1
-                        print("Product: ", text)
                         if prev_idx >= 0:
                             prev_char = text[prev_idx]
                             # If it follows an operator, it's not a binary * or /
@@ -529,7 +528,6 @@ class Parser:
                         else:
                             # Start of string (invalid for * or / anyway)
                             continue
-                        print(text[:i], "*", text[i + 1 :])
                         left = self._parse_expression(text[:i])
                         right = self._parse_expression(text[i + 1 :])
                         return BinaryOp(left, op, right)

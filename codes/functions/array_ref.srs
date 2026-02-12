@@ -1,11 +1,15 @@
 fn main() {
     let arr: [i32; 5] = [1, 2, 3, 5, 6];
-    let arr_ref = &arr;
-    modify(arr_ref);
+    modify(&arr);
     return;
 }
 
 fn modify(arr: &[i32; 5]) {
-    *arr[0] = 9999;
+    let i: i32 = 0;
+    while i < 5 {
+        *arr[i] = 10 * i;
+        i += 1;
+    }
+
     return;
 }
