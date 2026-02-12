@@ -1,0 +1,11 @@
+fn main() {
+    let arr: [i32; 5] = [1, 2, 3, 5, 6];
+    modify(arr);
+    return;
+}
+
+fn modify(arr: [i32; 5]) {
+    // Modify does not actually modify main's arr
+    arr[0] = 9999;
+    return;
+}

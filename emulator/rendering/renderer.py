@@ -172,20 +172,10 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: ProgramCounter):
     ax.set_facecolor(BG)
     ax.set_axis_off()
 
-    # --- TITLE ---
+    # --- EXPLANATION ---
     ax.text(
         6.1,
-        8.1,
-        "MEMORY VISUALIZER (V2)",
-        color=TEXT_BRIGHT,
-        fontsize=17,
-        fontweight="bold",
-        ha="center",
-        family="monospace",
-    )
-    ax.text(
-        6.1,
-        7.9,
+        8.2,
         "Press [RIGHT ARROW] to step forward",
         color=TEXT_MID,
         fontsize=8,
@@ -205,10 +195,12 @@ def render_to_ax(ax, mem: MemoryModel, program: Program, pc: ProgramCounter):
 
         # Function Header
         ax.add_patch(mpatches.Rectangle((0.2, cursor_y - 0.3), 5.0, 0.3, color=hdr_col))
-        params_str = ", ".join([p[0] for p in fdef.params])
+        params_str = ", ".join(
+            [p[0] if p[1] is None else f"{p[0]}: {p[1]}" for p in fdef.params]
+        )
         ax.text(
             0.3,
-            cursor_y - 0.2,
+            cursor_y - 0.23,
             f"fn {fn_name}({params_str}) {{",
             color=BG,
             fontweight="bold",

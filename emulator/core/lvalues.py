@@ -15,7 +15,12 @@ class VariableLValue(LValue):
         self.name = name
 
     def get_address(self, mem, prog) -> int:
-        return mem.get_addr(self.name)
+        try:
+            addr = mem.get_addr(self.name)
+        except Exception:
+            addr = mem.get_addr(f"{self.name}.cap")
+
+        return addr
 
     def description(self) -> str:
         return self.name

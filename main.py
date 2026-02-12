@@ -145,6 +145,14 @@ def p33():
     return load_file("codes/stack/factorial.srs")
 
 
+def p34():
+    return load_file("codes/functions/array_copy_no_ret.srs")
+
+
+def p35():
+    return load_file("codes/heap/vec_by_ret.srs")
+
+
 if __name__ == "__main__":
     PROGS = {
         "Stack variables": (p0, FRAME_PALETTE[0]),  # stack
@@ -181,6 +189,8 @@ if __name__ == "__main__":
         "Dicho search": (p31, FRAME_PALETTE[3]),
         "Max search": (p32, FRAME_PALETTE[3]),
         "Factorial": (p33, FRAME_PALETTE[0]),
+        "Array param": (p34, FRAME_PALETTE[2]),
+        "Function vec by ret": (p35, FRAME_PALETTE[1]),  # heap
     }
 
     ProgramLauncher(PROGS)

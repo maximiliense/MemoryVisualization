@@ -13,5 +13,11 @@ fn level1() {
 
 fn level2() {
     let l2: i32 = 20;
+    level3();
+    return;
+}
+
+fn level3() {
+    let arr: [i32; 3] = [1, 55, -12];
     return;
 }

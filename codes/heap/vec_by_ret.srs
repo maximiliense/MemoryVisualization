@@ -1,14 +1,14 @@
 fn main() {
     // Setup Vec
     let mut v = vec![1, 2];
-    process(&v);
+    v = process(v);
     drop(v);
     return;
 }
 
-fn process(p: &Vec<_>) {
+fn process(v: Vec<_>) {
     // p is a reference to the vec in the
     // main's stackframe
-    *p.push(42);
-    return;
+    v.push(42);
+    return v;
 }
