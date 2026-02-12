@@ -18,12 +18,13 @@ class Literal(Expression):
         self.typ = typ
 
     def evaluate(self, mem, prog) -> EvaluationResult:
-        return EvaluationResult(values=[self.value], typ=self.typ)
+        value = int(self.value) if self.typ == "bool" else self.value
+        return EvaluationResult(values=[value], typ=self.typ)
 
     def description(self) -> str:
         if self.typ == "str":
             return f'"{self.value}"'
-        return str(self.value)
+        return str(self.value).lower()
 
 
 class Variable(Expression):
@@ -65,6 +66,28 @@ class Variable(Expression):
 
     def description(self) -> str:
         return self.name
+
+
+class Not(Expression):
+    """Reverse a boolean value"""
+
+    def __init__(self, expr: Expression):
+        self.expr = expr
+
+    def evaluate(self, mem, prog) -> Union[EvaluationResult, ExecutionStatus]:
+        ctx = self.get_ctx(mem)
+        if ctx.step == 0:
+            result = self.expr.evaluate(mem, prog)
+            if result == ExecutionStatus.INCOMPLETE:
+                return ExecutionStatus.INCOMPLETE
+            ctx.store("eval_result", result)
+            ctx.advance
+
+        result = ctx.get("eval_result")
+        return EvaluationResult(values=[not result], typ="bool")
+
+    def description(self) -> str:
+        return f"!{self.expr.description()}"
 
 
 class ArrayAccess(Expression):
@@ -126,6 +149,7 @@ class BinaryOp(Expression):
 
     def evaluate(self, mem, prog) -> Union[EvaluationResult, ExecutionStatus]:
         ctx = self.get_ctx(mem)
+
         # Step 0: Evaluate left operand
         if ctx.step == 0:
             left_result = self.left.evaluate(mem, prog)
@@ -162,6 +186,14 @@ class BinaryOp(Expression):
             result = 1 if left_val < right_val else 0
         elif self.op == ">":
             result = 1 if left_val > right_val else 0
+        elif self.op == "<=":
+            result = 1 if left_val <= right_val else 0
+        elif self.op == ">=":
+            result = 1 if left_val >= right_val else 0
+        elif self.op == "||":
+            result = 1 if left_val or right_val else 0
+        elif self.op == "&&":
+            result = 1 if left_val and right_val else 0
         else:
             raise ValueError(f"Unknown operator: {self.op}")
 

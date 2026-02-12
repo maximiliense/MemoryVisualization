@@ -136,6 +136,7 @@ class ProgramRunner:
                 target_expr = instr.expr
 
             # If a FunctionCall is ready to fire, we "Jump" (PC MOVES)
+
             if isinstance(target_expr, FunctionCall) and target_expr.get_ctx(
                 self.mem
             ).get("ready_to_call"):

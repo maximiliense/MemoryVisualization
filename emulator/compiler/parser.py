@@ -20,6 +20,7 @@ from emulator.core.expressions import (
     Expression,
     FunctionCall,
     Literal,
+    Not,
     Reference,
     Variable,
     VecMacro,
@@ -442,9 +443,31 @@ class Parser:
     def _parse_expression(self, text: str) -> Expression:
         """Parse expression (recursive descent)"""
         text = text.strip()
+        if text.startswith("(") and text.endswith(")"):
+            # Check if opening and closing parens match
+            depth = 0
+            for i, c in enumerate(text):
+                if c == "(":
+                    depth += 1
+                elif c == ")":
+                    depth -= 1
+                # If depth hits 0 before the end, they don't match
+                if depth == 0 and i < len(text) - 1:
+                    break
+
+            # Only strip if we made it to the end with depth 0
+            if depth == 0 and i == len(text) - 1:  # type: ignore
+                return self._parse_expression(text[1:-1])
+        for op in ["||", "&&"]:
+            if op in text:
+                parts = text.split(op, 1)
+                if len(parts) == 2:
+                    left = self._parse_expression(parts[0])
+                    right = self._parse_expression(parts[1])
+                    return BinaryOp(left, op, right)
 
         # Try to parse as binary operation (lowest precedence first)
-        for op in ["==", "!=", "<", ">", "<=", ">="]:
+        for op in ["<=", ">=", "==", "!=", "<", ">"]:
             if op in text:
                 parts = text.split(op, 1)
                 if len(parts) == 2:
@@ -454,27 +477,59 @@ class Parser:
 
         for op in ["+", "-"]:
             if op in text:
-                # Find the operator not inside parentheses
                 depth = 0
-                for i, c in enumerate(text):
-                    if c == "(":
+                # Iterate REVERSED to find the rightmost operator (Left-Associativity)
+                for i in range(len(text) - 1, -1, -1):
+                    c = text[i]
+                    # Note: Brackets are swapped because we are moving backwards
+                    if c in ")]":
                         depth += 1
-                    elif c == ")":
+                    elif c in "([":
                         depth -= 1
                     elif c == op and depth == 0 and i > 0:
+                        # Find the non-whitespace character to the left
+                        prev_idx = i - 1
+                        while prev_idx >= 0 and text[prev_idx].isspace():
+                            prev_idx -= 1
+
+                        if prev_idx >= 0:
+                            prev_char = text[prev_idx]
+                            # If it follows an operator, it's unary (e.g., 5 + -3)
+                            if prev_char in "+-*/=!<>,(":
+                                continue
+                        else:
+                            # Start of string (e.g., -3)
+                            continue
+
+                        # Correct split: everything before is Left, everything after is Right
                         left = self._parse_expression(text[:i])
                         right = self._parse_expression(text[i + 1 :])
                         return BinaryOp(left, op, right)
-
         for op in ["*", "/"]:
             if op in text:
                 depth = 0
-                for i, c in enumerate(text):
-                    if c == "(":
+                # Iterate REVERSED to maintain left-to-right priority
+                for i in range(len(text) - 1, -1, -1):
+                    c = text[i]
+                    if c in ")]":
                         depth += 1
-                    elif c == ")":
+                    elif c in "([":
                         depth -= 1
                     elif c == op and depth == 0 and i > 0:
+                        # Check for infix position (must follow a value)
+                        prev_idx = i - 1
+                        while prev_idx >= 0 and text[prev_idx].isspace():
+                            prev_idx -= 1
+                        print("Product: ", text)
+                        if prev_idx >= 0:
+                            prev_char = text[prev_idx]
+                            # If it follows an operator, it's not a binary * or /
+                            if prev_char in "+-*/=!<>,(":
+                                continue
+                        else:
+                            # Start of string (invalid for * or / anyway)
+                            continue
+                        print(text[:i], "*", text[i + 1 :])
                         left = self._parse_expression(text[:i])
                         right = self._parse_expression(text[i + 1 :])
                         return BinaryOp(left, op, right)
@@ -485,6 +540,26 @@ class Parser:
     def _parse_primary(self, text: str) -> Expression:
         """Parse primary expression"""
         text = text.strip()
+        if text.startswith("-") and len(text) > 1 and text[1].isdigit():
+            try:
+                return Literal(int(text))
+            except ValueError:
+                pass
+
+        if text.startswith("!"):
+            # Parse the part after the '!'
+            # We call _parse_primary again to handle cases like !!true
+            inner_expr = self._parse_primary(text[1:].strip())
+            # Assuming you have a UnaryOp or Not class in your core expressions
+            # If you don't have a Not class, you can use a BinaryOp with a dummy left side
+            # or define a new class. Let's assume a 'Not' class exists:
+            return Not(inner_expr)
+
+        if text == "true":
+            return Literal(True, "bool")
+        if text == "false":
+            return Literal(False, "bool")
+
         # Parenthesized expression
         if text.startswith("(") and text.endswith(")"):
             return self._parse_expression(text[1:-1])

@@ -129,6 +129,22 @@ def p29():
     return load_file("codes/stack/static_array_alone.srs")
 
 
+def p30():
+    return load_file("codes/miscellaneous/bubble_sort.srs")
+
+
+def p31():
+    return load_file("codes/miscellaneous/dicho_search.srs")
+
+
+def p32():
+    return load_file("codes/miscellaneous/search_max.srs")
+
+
+def p33():
+    return load_file("codes/stack/factorial.srs")
+
+
 if __name__ == "__main__":
     PROGS = {
         "Stack variables": (p0, FRAME_PALETTE[0]),  # stack
@@ -161,6 +177,10 @@ if __name__ == "__main__":
         "Array copy&ret": (p27, FRAME_PALETTE[2]),
         "&Array": (p28, FRAME_PALETTE[2]),
         "Static Array 2": (p29, FRAME_PALETTE[0]),
+        "Bubble sort": (p30, FRAME_PALETTE[3]),
+        "Dicho search": (p31, FRAME_PALETTE[3]),
+        "Max search": (p32, FRAME_PALETTE[3]),
+        "Factorial": (p33, FRAME_PALETTE[0]),
     }
 
     ProgramLauncher(PROGS)

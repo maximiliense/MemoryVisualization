@@ -1,0 +1,33 @@
+fn main() {
+    let mut arr: [i32; 8] = [2048, 256, 112, 1024, 5, 12, 3, 2];
+    let arr_len: i32 = 8;
+
+    let i: i32 = 0;
+    let j: i32;
+    let temp: i32;
+    while i < arr_len - 1 {
+        j = 0;
+        while j < arr_len - i - 1 {
+            if arr[j] > arr[j + 1] {
+                // Swap arr[j] and arr[j+1]
+                temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+            j += 1;
+        }
+        i += 1;
+    }
+
+    // Print sorted array
+    print!("Sorted array: ");
+    let k: i32 = 0;
+    while k < arr_len {
+        print!(arr[k]);
+        print!(" ");
+        k += 1;
+    }
+    println!("");
+
+    return;
+}

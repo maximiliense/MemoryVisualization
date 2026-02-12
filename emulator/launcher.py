@@ -52,7 +52,7 @@ class ProgramLauncher:
 
         self.ax.text(
             5,
-            9.2,
+            9.8,
             "SELECT A PROGRAM TO VISUALIZE",
             color=TEXT_BRIGHT,
             fontsize=20,
@@ -70,7 +70,7 @@ class ProgramLauncher:
             r = idx // cols
 
             x = 1.0 + c * 2.1
-            y = 7.5 - r * 1.0
+            y = 8.2 - r * 1.0
             width, height = 1.9, 0.6
 
             # Button background
