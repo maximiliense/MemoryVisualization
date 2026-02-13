@@ -1,0 +1,19 @@
+fn main() {
+    let my_ref = create_ref();
+    let my_ref2 = create_ref2();
+    drop(my_ref2);
+    // drop(my_ref1); ???
+    return;
+}
+
+fn create_ref() {
+    let my_var: i32 = 42;
+    // Rust forbid to return reference
+    // to something "owned" by the func
+    return &my_var;
+}
+
+fn create_ref2() {
+    let my_var = Box::new(42);
+    return my_var;
+}

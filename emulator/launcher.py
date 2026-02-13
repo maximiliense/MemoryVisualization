@@ -70,7 +70,7 @@ class ProgramLauncher:
             r = idx // cols
 
             x = 1.0 + c * 2.1
-            y = 8.2 - r * 1.0
+            y = 8.5 - r * 0.9
             width, height = 1.9, 0.6
 
             # Button background
