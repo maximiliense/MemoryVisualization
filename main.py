@@ -152,8 +152,14 @@ def p34():
 def p35():
     return load_file("codes/heap/vec_by_ret.srs")
 
+
 def p36():
     return load_file("codes/functions/ret_ref.srs")
+
+
+def p37():
+    return load_file("codes/heap/reassign_ptr.srs")
+
 
 if __name__ == "__main__":
     PROGS = {
@@ -194,6 +200,7 @@ if __name__ == "__main__":
         "Array param": (p34, FRAME_PALETTE[2]),
         "Function vec by ret": (p35, FRAME_PALETTE[1]),  # heap
         "Returning ref": (p36, FRAME_PALETTE[2]),  # heap
+        "Reassign ptr": (p37, FRAME_PALETTE[2]),  # heap
     }
 
     ProgramLauncher(PROGS)

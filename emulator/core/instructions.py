@@ -165,6 +165,11 @@ class Assignment(Instruction):
                 target_cell_addr = addr + i  # type: ignore
                 if target_cell_addr < len(mem.mem):
                     mem.mem[target_cell_addr].value = val
+        elif result.typ == "Box":
+            # Allocate heap for boxed value
+            ha = mem.alloc_heap("data", "i32")
+            mem.mem[ha].value = result.get_scalar()
+            mem.mem[addr].value = ha
 
         # 3. Handle Scalar / Pointer / Box Assignment
         else:

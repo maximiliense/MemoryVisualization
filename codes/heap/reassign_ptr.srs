@@ -1,0 +1,12 @@
+fn main() {
+    let a = Box::new(999);
+    call_by_ref(a);
+    println!(a);
+    println!(*a);
+    return;
+}
+
+fn call_by_ref(a: &i32) {
+    a = Box::new(-1);
+    return;
+}
