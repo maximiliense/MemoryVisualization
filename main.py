@@ -160,6 +160,8 @@ def p36():
 def p37():
     return load_file("codes/heap/reassign_ptr.srs")
 
+def p38():
+    return load_file("codes/heap/dangling_simple.srs")
 
 if __name__ == "__main__":
     PROGS = {
@@ -201,6 +203,7 @@ if __name__ == "__main__":
         "Function vec by ret": (p35, FRAME_PALETTE[1]),  # heap
         "Returning ref": (p36, FRAME_PALETTE[2]),  # heap
         "Reassign ptr": (p37, FRAME_PALETTE[2]),  # heap
+        "Simple dangling ptr": (p38, FRAME_PALETTE[2]),
     }
 
     ProgramLauncher(PROGS)
