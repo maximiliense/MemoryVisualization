@@ -6,7 +6,7 @@ fn main() {
     return;
 }
 
-fn process(y, y_ref) {
+fn process(y: i32, y_ref: &i32) {
     // y is a copy
     // y_ref points to main stackframe
     *y_ref = 999;
