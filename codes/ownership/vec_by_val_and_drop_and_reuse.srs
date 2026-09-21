@@ -9,6 +9,5 @@ fn main() {
 fn process(v: Vec<i32>) {
     v.push(42);
     // On fait des choses avec v
-    drop(v);
     return;
 }
