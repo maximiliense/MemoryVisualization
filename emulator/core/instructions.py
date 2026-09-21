@@ -416,7 +416,17 @@ class Drop(Instruction):
         self.is_vec = is_vec
 
     def execute(self, mem, prog) -> ExecutionStatus:
-        if self.is_vec:
+        is_vec = self.is_vec
+        if not is_vec:
+            try:
+                mem.get_addr(self.var_name)
+            except KeyError:
+                try:
+                    mem.get_addr(f"{self.var_name}.cap")
+                    is_vec = True
+                except KeyError:
+                    raise KeyError(f"Variable '{self.var_name}' not found.")
+        if is_vec:
             # Free Vec
 
             p_addr = mem.get_addr(f"{self.var_name}.ptr")

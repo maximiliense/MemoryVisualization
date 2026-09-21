@@ -63,15 +63,18 @@ class ProgramLauncher:
 
         # Create a grid of buttons
         cols = 4
-        # rows = (len(keys) // cols) + 1
+        btn_h, row_pitch = 0.45, 0.65
+        n_rows = (len(self.program_map) + cols - 1) // cols
+        block_h = (n_rows - 1) * row_pitch + btn_h
+        top_y = 4.7 + block_h / 2
 
         for idx, (key, val) in enumerate(self.program_map.items()):
             c = idx % cols
             r = idx // cols
 
             x = 1.0 + c * 2.1
-            y = 8.5 - r * 0.9
-            width, height = 1.9, 0.6
+            y = top_y - r * row_pitch
+            width, height = 1.9, btn_h
 
             # Button background
             color = val[1]

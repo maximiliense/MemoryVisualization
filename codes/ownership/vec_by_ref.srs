@@ -1,0 +1,15 @@
+fn main() {
+    // setup vec
+    let v = vec![1, 2];
+    process(&v);
+    v.push(64);
+    // on fait d'autres choses
+    drop(v);
+    return;
+}
+
+fn process(v: &Vec<i32>) {
+    *v.push(42);
+    // On fait des choses avec v
+    return;
+}

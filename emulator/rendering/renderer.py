@@ -35,6 +35,7 @@ FRAME_PALETTE = [
     "#E8506A",
     "#5BB8D4",
     "#C9A84C",
+    "#B4BEFE",
 ]
 
 

@@ -82,6 +82,9 @@ class Parser:
                 fn_name, params, body_str, new_i = self._parse_function_def(source, i)
                 # NEW: Reset variable tracking for each function
                 self.current_func_vars = {}
+                for pname, ptyp in params:
+                    if ptyp:
+                        self.current_func_vars[pname] = ptyp
                 body = self._parse_body(body_str)
                 self.functions[fn_name] = FunctionDef(params=params, body=body)
                 i = new_i

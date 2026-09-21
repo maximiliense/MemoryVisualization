@@ -160,8 +160,26 @@ def p36():
 def p37():
     return load_file("codes/heap/reassign_ptr.srs")
 
+
 def p38():
     return load_file("codes/heap/dangling_simple.srs")
+
+
+def p39():
+    return load_file("codes/ownership/vec_by_val_and_drop.srs")
+
+
+def p40():
+    return load_file("codes/ownership/vec_by_val_and_drop_and_reuse.srs")
+
+
+def p41():
+    return load_file("codes/ownership/vec_by_ref.srs")
+
+
+def p42():
+    return load_file("codes/ownership/vec_by_val_and_ret.srs")
+
 
 if __name__ == "__main__":
     PROGS = {
@@ -204,6 +222,10 @@ if __name__ == "__main__":
         "Returning ref": (p36, FRAME_PALETTE[2]),  # heap
         "Reassign ptr": (p37, FRAME_PALETTE[2]),  # heap
         "Simple dangling ptr": (p38, FRAME_PALETTE[2]),
+        "Owner...: move & drop": (p39, FRAME_PALETTE[7]),  # ownership
+        "Owner...: error": (p40, FRAME_PALETTE[7]),  # ownership
+        "Owner...: ref": (p41, FRAME_PALETTE[7]),  # ownership
+        "Owner...: move & ret": (p42, FRAME_PALETTE[7]),  # ownership
     }
 
     ProgramLauncher(PROGS)

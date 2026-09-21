@@ -2,11 +2,13 @@ fn main() {
     // setup vec
     let v = vec![1, 2];
     process(v);
-    // drop(v); // ???
+    // Interdit de réutiliser v ici
     return;
 }
 
 fn process(v: Vec<i32>) {
     v.push(42);
+    // On fait des choses avec v
+    drop(v);
     return;
 }
