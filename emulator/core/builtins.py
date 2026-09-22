@@ -205,7 +205,23 @@ class Println(Expression):
             ctx.advance()
 
         result = ctx.get("result")
-        print(*result.values, end="\n" if self.new_line else "", flush=True)
+        end = "\n" if self.new_line else ""
+        if result.typ == "Vec":
+            if len(result.values) == 1:
+                base = result.get_scalar()
+                length = mem.mem[base + 1].value
+                ptr = mem.mem[base + 2].value
+            else:
+                _, length, ptr = result.values
+            if isinstance(ptr, int) and isinstance(length, int):
+                elems = [mem.mem[ptr + i].value for i in range(length)]
+            else:
+                elems = []
+            print(elems, end=end, flush=True)
+        elif result.typ == "VecLiteral":
+            print(list(result.values), end=end, flush=True)
+        else:
+            print(*result.values, end=end, flush=True)
         # In visualization, we don't actually print, just show the instruction
         # But we could add to a print log if needed
         return EvaluationResult(values=[None], typ="()")
